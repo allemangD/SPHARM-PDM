@@ -44,19 +44,39 @@
 extern "C" {
 #endif
 
-void  readHB_info      __ProtoGlarp__( ( const char *, int *, int *, int *, int * ) );
-void readHB_mat_double __ProtoGlarp__( ( const char *, int *, int *, double *) );
-void readHB_mat_float  __ProtoGlarp__( ( const char *, int *, int *, float *) );
+void readHB_info __ProtoGlarp__((const char *, int *, int *, int *, int *));
+void readHB_mat_double __ProtoGlarp__((const char *, int *, int *, double *));
+void readHB_mat_float __ProtoGlarp__((const char *, int *, int *, float *));
 
-void readHB_rhs_double __ProtoGlarp__( ( const char *, double *, int) );
-void readHB_rhs_float  __ProtoGlarp__( ( const char *, float *, int) );
+void readHB_rhs_double __ProtoGlarp__((const char *, double *, int));
+void readHB_rhs_float __ProtoGlarp__((const char *, float *, int));
 
-void writeHB_mat_double
-__ProtoGlarp__( ( const char *, int, int, int, const int *, const int *,
-                  const double *, int, const double *, const char *, const char *) );
-void writeHB_mat_float
-__ProtoGlarp__( ( const char *, int, int, int, const int *, const int *,
-                  const float *, int, const double *, const char *, const char *) );
+void writeHB_mat_double __ProtoGlarp__(
+    (const char *,
+     int,
+     int,
+     int,
+     const int *,
+     const int *,
+     const double *,
+     int,
+     const double *,
+     const char *,
+     const char *)
+);
+void writeHB_mat_float __ProtoGlarp__(
+    (const char *,
+     int,
+     int,
+     int,
+     const int *,
+     const int *,
+     const float *,
+     int,
+     const double *,
+     const char *,
+     const char *)
+);
 
 #ifdef __cplusplus
 }

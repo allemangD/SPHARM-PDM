@@ -42,81 +42,51 @@
 
 #include <assert.h>
 
-class MV_VecIndex
-{
-private:
-  int  start_;
-  int  end_;
-  char all_;                // true if this index refers to the complete
-                            // vector range.  start_ and end_ are ignored.
-public:
-  MV_VecIndex() : start_(0), end_(0), all_(1)
-  {
-  }
+class MV_VecIndex {
+ private:
+  int start_;
+  int end_;
+  char all_;  // true if this index refers to the complete
+              // vector range.  start_ and end_ are ignored.
+ public:
+  MV_VecIndex() : start_(0), end_(0), all_(1) {}
 
-  MV_VecIndex( int i1) : start_(i1), end_(i1), all_(0)
-  {
-  }
+  MV_VecIndex(int i1) : start_(i1), end_(i1), all_(0) {}
 
-  MV_VecIndex( int i1,  int i2) : start_(i1), end_(i2),
-    all_(0)
-  {
-    assert(i1 <= i2);
-  }
+  MV_VecIndex(int i1, int i2) : start_(i1), end_(i2), all_(0) { assert(i1 <= i2); }
 
-  MV_VecIndex(const MV_VecIndex & s) : start_(s.start_), end_(s.end_),
-    all_(s.all_)
-  {
-  }
+  MV_VecIndex(const MV_VecIndex& s) : start_(s.start_), end_(s.end_), all_(s.all_) {}
 
-  int start() const
-  {
-    return (all_ == 1) ? 0 : start_;
-  }
+  int start() const { return (all_ == 1) ? 0 : start_; }
 
-  int end() const
-  {
-    return (all_ == 1) ? 0 : end_;
-  }
+  int end() const { return (all_ == 1) ? 0 : end_; }
 
-  int length() const
-  {
-    return (all_ == 1) ? 0 : (end_ - start_ + 1);
-  }
+  int length() const { return (all_ == 1) ? 0 : (end_ - start_ + 1); }
 
-  int all() const
-  {
-    return all_;
-  }
+  int all() const { return all_; }
 
-  MV_VecIndex & operator=(const MV_VecIndex& I)
-  {
+  MV_VecIndex& operator=(const MV_VecIndex& I) {
     start_ = I.start_;
     end_ = I.end_;
     all_ = I.all_;
     return *this;
   }
 
-  MV_VecIndex operator+(int i)
-  {
-    return MV_VecIndex(start_ + i, end_ + i);
+  MV_VecIndex operator+(int i) { return MV_VecIndex(start_ + i, end_ + i); }
+
+  MV_VecIndex& operator+=(int i) {
+    start_ += i;
+    end_ += i;
+    return *this;
   }
 
-  MV_VecIndex & operator+=(int i)
-  {
-    start_ += i; end_ += i; return *this;
-  }
+  MV_VecIndex operator-(int i) { return MV_VecIndex(start_ - i, end_ - i); }
 
-  MV_VecIndex operator-(int i)
-  {
-    return MV_VecIndex(start_ - i, end_ - i);
+  MV_VecIndex& operator-=(int i) {
+    start_ -= i;
+    end_ -= i;
+    return *this;
   }
-
-  MV_VecIndex & operator-=(int i)
-  {
-    start_ -= i; end_ -= i; return *this;
-  }
-
 };
 
 #endif

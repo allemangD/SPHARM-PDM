@@ -31,15 +31,14 @@
 #ifndef _MV_MATRIX_ALL_H_
 #define _MV_MATRIX_ALL_H_
 
-#include "mvconfig.h"
-
-#include "mvmrf.h"
-#include "mvmd.h"
-#include "mvmi.h"
-#include "mvmf.h"
-
 #include <complex>
+
+#include "mvconfig.h"
 #include "mvmc.h"
+#include "mvmd.h"
+#include "mvmf.h"
+#include "mvmi.h"
+#include "mvmrf.h"
 
 #endif
 // _MV_MATRIX_ALL_H_

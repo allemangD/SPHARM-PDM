@@ -20,48 +20,38 @@
 // *****************************************************************
 
 template <class Matrix, class Vector, class Preconditioner, class Real>
-int
-CGS(const Matrix & A, Vector & x, const Vector & b,
-    const Preconditioner & M, int & max_iter, Real & tol)
-{
-  Real   resid;
+int CGS(const Matrix& A, Vector& x, const Vector& b, const Preconditioner& M, int& max_iter, Real& tol) {
+  Real resid;
   Vector rho_1(1), rho_2(1), alpha(1), beta(1);
   Vector p, phat, q, qhat, vhat, u, uhat;
 
-  Real   normb = norm(b);
+  Real normb = norm(b);
   Vector r = b - A * x;
   Vector rtilde = r;
 
-  if( normb == 0.0 )
-    {
+  if (normb == 0.0) {
     normb = 1;
-    }
+  }
 
-  if( (resid = norm(r) / normb) <= tol )
-    {
+  if ((resid = norm(r) / normb) <= tol) {
     tol = resid;
     max_iter = 0;
     return 0;
-    }
-  for( int i = 1; i <= max_iter; i++ )
-    {
+  }
+  for (int i = 1; i <= max_iter; i++) {
     rho_1(0) = dot(rtilde, r);
-    if( rho_1(0) == 0 )
-      {
+    if (rho_1(0) == 0) {
       tol = norm(r) / normb;
       return 2;
-      }
-    if( i == 1 )
-      {
+    }
+    if (i == 1) {
       u = r;
       p = u;
-      }
-    else
-      {
+    } else {
       beta(0) = rho_1(0) / rho_2(0);
       u = r + beta(0) * q;
       p = u + beta(0) * (q + beta(0) * p);
-      }
+    }
     phat = M.solve(p);
     vhat = A * phat;
     alpha(0) = rho_1(0) / dot(rtilde, vhat);
@@ -71,13 +61,12 @@ CGS(const Matrix & A, Vector & x, const Vector & b,
     qhat = A * uhat;
     r -= alpha(0) * qhat;
     rho_2(0) = rho_1(0);
-    if( (resid = norm(r) / normb) < tol )
-      {
+    if ((resid = norm(r) / normb) < tol) {
       tol = resid;
       max_iter = i;
       return 0;
-      }
     }
+  }
 
   tol = resid;
   return 1;

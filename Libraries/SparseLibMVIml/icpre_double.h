@@ -33,29 +33,25 @@
 
 #include "vecdefs.h"
 #include VECTOR_H
-#include "comprow_double.h"
 #include "compcol_double.h"
+#include "comprow_double.h"
 
-class ICPreconditioner_double
-{
-
-private:
+class ICPreconditioner_double {
+ private:
   VECTOR_double val_;
-  VECTOR_int    pntr_;
-  VECTOR_int    indx_;
-  int           nz_;
-  int           dim_[2];
-public:
-  ICPreconditioner_double(const CompCol_Mat_double & A);
-  ICPreconditioner_double(const CompRow_Mat_double & A);
-  ~ICPreconditioner_double(void)
-  {
-  };
+  VECTOR_int pntr_;
+  VECTOR_int indx_;
+  int nz_;
+  int dim_[2];
 
-  VECTOR_double     solve(const VECTOR_double & x) const;
+ public:
+  ICPreconditioner_double(const CompCol_Mat_double& A);
+  ICPreconditioner_double(const CompRow_Mat_double& A);
+  ~ICPreconditioner_double(void){};
 
-  VECTOR_double     trans_solve(const VECTOR_double & x) const;
+  VECTOR_double solve(const VECTOR_double& x) const;
 
+  VECTOR_double trans_solve(const VECTOR_double& x) const;
 };
 
 #endif

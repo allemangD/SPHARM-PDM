@@ -34,22 +34,37 @@
 
 #include "iohb.h"
 
-CompCol_Mat_double & readHB_mat(const char *filename, CompCol_Mat_double *A);
+CompCol_Mat_double &readHB_mat(const char *filename, CompCol_Mat_double *A);
 
-CompRow_Mat_double & readHB_mat(const char *filename, CompRow_Mat_double *A);
+CompRow_Mat_double &readHB_mat(const char *filename, CompRow_Mat_double *A);
 
-Coord_Mat_double & readHB_mat(const char *filename, Coord_Mat_double *A);
+Coord_Mat_double &readHB_mat(const char *filename, Coord_Mat_double *A);
 
-const CompCol_Mat_double & writeHB_mat(const char *filename, const CompCol_Mat_double & A, int nrhs = 0,
-                                       const double *rhs = 0, const char *title = 0,
-                                       const char *key = 0);
+const CompCol_Mat_double &writeHB_mat(
+    const char *filename,
+    const CompCol_Mat_double &A,
+    int nrhs = 0,
+    const double *rhs = 0,
+    const char *title = 0,
+    const char *key = 0
+);
 
-const CompRow_Mat_double & writeHB_mat(const char *filename, const CompRow_Mat_double & A, int nrhs = 0,
-                                       const double* rhs = 0, const char *title = 0,
-                                       const char *key = 0);
+const CompRow_Mat_double &writeHB_mat(
+    const char *filename,
+    const CompRow_Mat_double &A,
+    int nrhs = 0,
+    const double *rhs = 0,
+    const char *title = 0,
+    const char *key = 0
+);
 
-const Coord_Mat_double & writeHB_mat(const char *filename, const Coord_Mat_double & A, int nrhs = 0,
-                                     const double* rhs = 0, const char *title = 0,
-                                     const char *key = 0);
+const Coord_Mat_double &writeHB_mat(
+    const char *filename,
+    const Coord_Mat_double &A,
+    int nrhs = 0,
+    const double *rhs = 0,
+    const char *title = 0,
+    const char *key = 0
+);
 
-VECTOR_double & readHB_rhs(const char *filename, VECTOR_double *b, int j = 0);
+VECTOR_double &readHB_rhs(const char *filename, VECTOR_double *b, int j = 0);

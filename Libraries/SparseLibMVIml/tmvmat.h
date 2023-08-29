@@ -41,39 +41,37 @@
 #include <assert.h>
 #endif
 
-class MV_ColMat_TYPE
-{
-private:
+class MV_ColMat_TYPE {
+ private:
   MV_Vector_TYPE v_;
-  int            dim0_; // perferred to using dim_[2]. some compilers
-  int            dim1_; // refuse to initalize these in the constructor.
-  int            lda_;
-  int            ref_; // true if this is declared as a reference vector,
-                       // i.e. it does not own the memory space, but
-                       // rather it is a view to another vector or array.
-public:
-
+  int dim0_;  // perferred to using dim_[2]. some compilers
+  int dim1_;  // refuse to initalize these in the constructor.
+  int lda_;
+  int ref_;  // true if this is declared as a reference vector,
+             // i.e. it does not own the memory space, but
+             // rather it is a view to another vector or array.
+ public:
   /*::::::::::::::::::::::::::*/
   /* Constructors/Destructors */
   /*::::::::::::::::::::::::::*/
 
   MV_ColMat_TYPE();
-  MV_ColMat_TYPE( int,  int);
+  MV_ColMat_TYPE(int, int);
 
   // some compilers have difficulty with inlined 'for' statements.
-  MV_ColMat_TYPE( int,  int, const TYPE &);
+  MV_ColMat_TYPE(int, int, const TYPE &);
 
   // usual copy by value
   // (can't use default parameter lda=m, because m is not a constant...)
   //
-  MV_ColMat_TYPE(TYPE *,  int m,  int n);
-  MV_ColMat_TYPE(TYPE *,  int m,  int n,  int lda);
+  MV_ColMat_TYPE(TYPE *, int m, int n);
+  MV_ColMat_TYPE(TYPE *, int m, int n, int lda);
 
   // the "reference" versions
   //
   //
-  MV_ColMat_TYPE(TYPE *,  int m,  int n, MV_Matrix_::ref_type i);
-  MV_ColMat_TYPE(TYPE *,  int m,  int n,  int lda, MV_Matrix_::ref_type i);
+  MV_ColMat_TYPE(TYPE *, int m, int n, MV_Matrix_::ref_type i);
+  MV_ColMat_TYPE(TYPE *, int m, int n, int lda, MV_Matrix_::ref_type i);
 
   MV_ColMat_TYPE(const MV_ColMat_TYPE &);
   ~MV_ColMat_TYPE();
@@ -82,64 +80,52 @@ public:
   /*  Indices and access operations */
   /*::::::::::::::::::::::::::::::::*/
 
-  inline TYPE & operator()( int,  int);
+  inline TYPE &operator()(int, int);
 
-  inline const TYPE & operator()( int,  int) const;
+  inline const TYPE &operator()(int, int) const;
 
-  MV_ColMat_TYPE operator()(const MV_VecIndex & I, const MV_VecIndex & J);
+  MV_ColMat_TYPE operator()(const MV_VecIndex &I, const MV_VecIndex &J);
 
-  const MV_ColMat_TYPE operator()(const MV_VecIndex & I, const MV_VecIndex & J) const;
+  const MV_ColMat_TYPE operator()(const MV_VecIndex &I, const MV_VecIndex &J) const;
 
-  int            size(int i) const;
+  int size(int i) const;
 
-  MV_ColMat_TYPE & newsize( int,  int);
+  MV_ColMat_TYPE &newsize(int, int);
 
-  int ref() const
-  {
-    return ref_;
-  }
+  int ref() const { return ref_; }
 
   /*::::::::::::::*/
   /*  Assignment  */
   /*::::::::::::::*/
 
-  MV_ColMat_TYPE & operator=(const MV_ColMat_TYPE &);
+  MV_ColMat_TYPE &operator=(const MV_ColMat_TYPE &);
 
-  MV_ColMat_TYPE & operator=(const TYPE &);
+  MV_ColMat_TYPE &operator=(const TYPE &);
 
-  friend std::ostream & operator<<(std::ostream & s, const MV_ColMat_TYPE & A);
-
+  friend std::ostream &operator<<(std::ostream &s, const MV_ColMat_TYPE &A);
 };
 
-inline TYPE & MV_ColMat_TYPE::operator()( int i,  int j)
-{
+inline TYPE &MV_ColMat_TYPE::operator()(int i, int j) {
 #ifdef MV_MATRIX_BOUNDS_CHECK
-  assert(0 <= i && i < size(0) );
-  assert(0 <= j && j < size(1) );
+  assert(0 <= i && i < size(0));
+  assert(0 <= j && j < size(1));
 #endif
-  return v_(j * lda_ + i);      // could use indirect addressing
-                                // instead...
+  return v_(j * lda_ + i);  // could use indirect addressing
+                            // instead...
 }
 
-inline const TYPE & MV_ColMat_TYPE::operator()
-  ( int i,  int j) const
-{
+inline const TYPE &MV_ColMat_TYPE::operator()(int i, int j) const {
 #ifdef MV_MATRIX_BOUNDS_CHECK
-  assert(0 <= i && i < size(0) );
-  assert(0 <= j && j < size(1) );
+  assert(0 <= i && i < size(0));
+  assert(0 <= j && j < size(1));
 #endif
   return v_(j * lda_ + i);
 }
 
-inline MV_ColMat_TYPE::MV_ColMat_TYPE(TYPE* d,  int m,  int n, MV_Matrix_::ref_type i ) :
-  v_(d, m * n, MV_Vector_::ref), dim0_(m), dim1_(n), lda_(m), ref_(i)
-{
-}
+inline MV_ColMat_TYPE::MV_ColMat_TYPE(TYPE *d, int m, int n, MV_Matrix_::ref_type i)
+    : v_(d, m * n, MV_Vector_::ref), dim0_(m), dim1_(n), lda_(m), ref_(i) {}
 
-inline MV_ColMat_TYPE::MV_ColMat_TYPE(TYPE* d,  int m,  int n, int lda, MV_Matrix_::ref_type i) :
-  v_(d, lda * n, MV_Vector_::ref), dim0_(m), dim1_(n), lda_(lda),
-  ref_(i)
-{
-}
+inline MV_ColMat_TYPE::MV_ColMat_TYPE(TYPE *d, int m, int n, int lda, MV_Matrix_::ref_type i)
+    : v_(d, lda * n, MV_Vector_::ref), dim0_(m), dim1_(n), lda_(lda), ref_(i) {}
 
 #endif

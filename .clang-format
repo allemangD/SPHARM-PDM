@@ -1,0 +1,8 @@
+# A fairly opinionated style, but it works and I don't want to waste time arguing about looks.
+# If something looks bad, edit this file to make it look better everywhere.
+BasedOnStyle: Google
+
+ColumnLimit: 110  # Default width is too small for VTK/ITK/Slicer class names.
+BinPackParameters: false
+BinPackArguments: false
+AlignAfterOpenBracket: BlockIndent

@@ -96,25 +96,23 @@
 
 #include "mv_vector_ref.h"
 
-class MV_Vector_TYPE
-{
-protected:
-  TYPE *       p_;
+class MV_Vector_TYPE {
+ protected:
+  TYPE *p_;
   unsigned int dim_;
-  int          ref_;  // 0 or 1; does this own its own memory space?
-public:
-
+  int ref_;  // 0 or 1; does this own its own memory space?
+ public:
   /*::::::::::::::::::::::::::*/
   /* Constructors/Destructors */
   /*::::::::::::::::::::::::::*/
 
   MV_Vector_TYPE();
   MV_Vector_TYPE(unsigned int);
-  MV_Vector_TYPE(unsigned int, const TYPE &);    // can't be inlined
+  MV_Vector_TYPE(unsigned int, const TYPE &);  // can't be inlined
   // because of 'for'
   // statement.
-  MV_Vector_TYPE(TYPE *, unsigned int);         // new copy
-  MV_Vector_TYPE(const TYPE *, unsigned int);   // new copy ???
+  MV_Vector_TYPE(TYPE *, unsigned int);        // new copy
+  MV_Vector_TYPE(const TYPE *, unsigned int);  // new copy ???
 
   // reference of an exisiting data structure
   //
@@ -129,80 +127,66 @@ public:
   // code for operator() is defined here, otherwise some compilers
   // (e.g. Turbo C++ v 3.0) cannot inline them properly...
   //
-  TYPE & operator()(unsigned int i)
-  {
+  TYPE &operator()(unsigned int i) {
 #ifdef MV_VECTOR_BOUNDS_CHECK
     assert(i < dim_);
 #endif
     return p_[i];
   }
 
-  const  TYPE & operator()(unsigned int i) const
-  {
+  const TYPE &operator()(unsigned int i) const {
 #ifdef MV_VECTOR_BOUNDS_CHECK
     assert(i < dim_);
 #endif
     return p_[i];
   }
 
-  TYPE &       operator[](unsigned int i)
-  {
+  TYPE &operator[](unsigned int i) {
 #ifdef MV_VECTOR_BOUNDS_CHECK
     assert(i < dim_);
 #endif
     return p_[i];
   }
 
-  const  TYPE & operator[](unsigned int i) const
-  {
+  const TYPE &operator[](unsigned int i) const {
 #ifdef MV_VECTOR_BOUNDS_CHECK
     assert(i < dim_);
 #endif
     return p_[i];
   }
 
-  MV_Vector_TYPE operator()(const MV_VecIndex & I);
+  MV_Vector_TYPE operator()(const MV_VecIndex &I);
 
   MV_Vector_TYPE operator()(void);
 
   const MV_Vector_TYPE operator()(void) const;
 
-  const MV_Vector_TYPE operator()(const MV_VecIndex & I) const;
+  const MV_Vector_TYPE operator()(const MV_VecIndex &I) const;
 
-//
-//   the following line causes ambiguatities with template instantiations
-//   should be avoid.  Used &v(0) explicitly when converting to TYPE*.
-//
-//    inline                operator const  TYPE*() const {return p_;}
-  inline unsigned int             size() const
-  {
-    return dim_;
-  }
+  //
+  //   the following line causes ambiguatities with template instantiations
+  //   should be avoid.  Used &v(0) explicitly when converting to TYPE*.
+  //
+  //    inline                operator const  TYPE*() const {return p_;}
+  inline unsigned int size() const { return dim_; }
 
-  inline int                      ref() const
-  {
-    return ref_;
-  }
+  inline int ref() const { return ref_; }
 
-  inline int                      null() const
-  {
-    return dim_ == 0;
-  }
+  inline int null() const { return dim_ == 0; }
 
   //
   // Create a new *uninitalized* vector of size N
-  MV_Vector_TYPE & newsize(unsigned int );
+  MV_Vector_TYPE &newsize(unsigned int);
 
   /*::::::::::::::*/
   /*  Assignment  */
   /*::::::::::::::*/
 
-  MV_Vector_TYPE & operator=(const MV_Vector_TYPE &);
+  MV_Vector_TYPE &operator=(const MV_Vector_TYPE &);
 
-  MV_Vector_TYPE & operator=(const TYPE &);
+  MV_Vector_TYPE &operator=(const TYPE &);
 
-  friend std::ostream & operator<<(std::ostream & s, const MV_Vector_TYPE & A);
-
+  friend std::ostream &operator<<(std::ostream &s, const MV_Vector_TYPE &A);
 };
 
 #include "mv_blas1_TYPE.h"

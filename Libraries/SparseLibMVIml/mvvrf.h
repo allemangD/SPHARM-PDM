@@ -29,8 +29,7 @@
 
 #ifndef _MV_VECTOR_REF_
 #define _MV_VECTOR_REF_
-struct MV_Vector_
-  {
-  enum ref_type  { ref = 1 };
-  };
+struct MV_Vector_ {
+  enum ref_type { ref = 1 };
+};
 #endif

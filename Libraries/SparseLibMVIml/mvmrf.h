@@ -29,8 +29,7 @@
 
 #ifndef _MV_MATRIX_REF_
 #define _MV_MATRIX_REF_
-struct MV_Matrix_
-  {
-  enum ref_type  { ref = 1 };
-  };
+struct MV_Matrix_ {
+  enum ref_type { ref = 1 };
+};
 #endif

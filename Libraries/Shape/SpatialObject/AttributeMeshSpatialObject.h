@@ -6,43 +6,43 @@
 
 #if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
+#endif  // _MSC_VER > 1000
 
 #include <itkMeshSpatialObject.h>
 #include <itkTriangleCell.h>
-#include <vector>
+
 #include <fstream>
+#include <vector>
 using namespace itk;
 
 template <class TMesh = Mesh<int>, class TAttributeType = float>
-class AttributeMeshSpatialObject : public MeshSpatialObject<TMesh>
-{
-public:
+class AttributeMeshSpatialObject : public MeshSpatialObject<TMesh> {
+ public:
   /** Run-time type information (and related methods). */
-  itkTypeMacro( AttributeMeshSpatialObject, MeshSpatialObject );
+  itkTypeMacro(AttributeMeshSpatialObject, MeshSpatialObject);
   typedef AttributeMeshSpatialObject<TMesh, TAttributeType> Self;
 
   typedef MeshSpatialObject<TMesh> Superclass;
-  typedef SmartPointer<Self>       Pointer;
+  typedef SmartPointer<Self> Pointer;
   typedef SmartPointer<const Self> ConstPointer;
 
-  typedef TMesh                                MeshType;
-  typedef typename MeshType::Pointer           MeshPointer;
-  typedef typename Superclass::TransformType   TransformType;
-  typedef typename Superclass::PointType       PointType;
+  typedef TMesh MeshType;
+  typedef typename MeshType::Pointer MeshPointer;
+  typedef typename Superclass::TransformType TransformType;
+  typedef typename Superclass::PointType PointType;
   typedef typename Superclass::BoundingBoxType BoundingBoxType;
 
   typedef VectorContainer<unsigned long, PointType> PointContainerType;
-  typedef typename PointContainerType::Pointer      PointContainerPointer;
+  typedef typename PointContainerType::Pointer PointContainerPointer;
 
   /** Method for creation through the object factory. */
-  itkNewMacro( Self );
+  itkNewMacro(Self);
 
   typedef std::vector<TAttributeType> TAttributeListType;
 
-  void ReadAttributes( std::string attrFilename );
+  void ReadAttributes(std::string attrFilename);
 
-  TAttributeListType  GetAttribute(unsigned int vertIndex);
+  TAttributeListType GetAttribute(unsigned int vertIndex);
 
   AttributeMeshSpatialObject();
   virtual ~AttributeMeshSpatialObject();
@@ -55,7 +55,7 @@ public:
 
   int GetAttributeDimension();
 
-private:
+ private:
   std::vector<TAttributeListType> m_Attributes;
 
   int m_AttributeDimension;
@@ -63,4 +63,4 @@ private:
 
 #include "AttributeMeshSpatialObject.txx"
 
-#endif // !defined(AFX_ATTRIBUTEMESHSPATIALOBJECT_H__5279771E_1299_4A29_B412_EB7391D7FCF1__INCLUDED_)
+#endif  // !defined(AFX_ATTRIBUTEMESHSPATIALOBJECT_H__5279771E_1299_4A29_B412_EB7391D7FCF1__INCLUDED_)

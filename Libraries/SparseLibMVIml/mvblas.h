@@ -26,32 +26,27 @@
 #define _MV_BLAS1_TPL_H_
 
 template <class TYPE>
-MV_Vector<TYPE> & operator*=(MV_Vector<TYPE> & x, const TYPE & a)
-{
+MV_Vector<TYPE>& operator*=(MV_Vector<TYPE>& x, const TYPE& a) {
   int N = x.size();
-  for( int i = 0; i < N; i++ )
-    {
+  for (int i = 0; i < N; i++) {
     x(i) *= a;
-    }
+  }
   return x;
 }
 
 template <class TYPE>
-MV_Vector<TYPE> operator*(const TYPE & a, const MV_Vector<TYPE> & x)
-{
+MV_Vector<TYPE> operator*(const TYPE& a, const MV_Vector<TYPE>& x) {
   int N = x.size();
 
   MV_Vector<TYPE> result(N);
-  for( int i = 0; i < N; i++ )
-    {
+  for (int i = 0; i < N; i++) {
     result(i) = x(i) * a;
-    }
+  }
   return result;
 }
 
 template <class TYPE>
-MV_Vector<TYPE> operator*(const MV_Vector<TYPE> & x, const TYPE & a)
-{
+MV_Vector<TYPE> operator*(const MV_Vector<TYPE>& x, const TYPE& a) {
   // This is the other commutative case of vector*scalar.
   // It should be just defined to be
   // "return operator*(a,x);"
@@ -63,110 +58,91 @@ MV_Vector<TYPE> operator*(const MV_Vector<TYPE> & x, const TYPE & a)
   int N = x.size();
 
   MV_Vector<TYPE> result(N);
-  for( int i = 0; i < N; i++ )
-    {
+  for (int i = 0; i < N; i++) {
     result(i) = x(i) * a;
-    }
+  }
   return result;
-
 }
 
 template <class TYPE>
-MV_Vector<TYPE> operator+(const MV_Vector<TYPE> & x, const MV_Vector<TYPE> & y)
-{
+MV_Vector<TYPE> operator+(const MV_Vector<TYPE>& x, const MV_Vector<TYPE>& y) {
   int N = x.size();
 
-  if( N != y.size() )
-    {
+  if (N != y.size()) {
     cout << "Incompatible vector lengths in +." << endl;
     exit(1);
-    }
+  }
 
   MV_Vector<TYPE> result(N);
-  for( int i = 0; i < N; i++ )
-    {
+  for (int i = 0; i < N; i++) {
     result(i) = x(i) + y(i);
-    }
+  }
   return result;
 }
 
 template <class TYPE>
-MV_Vector<TYPE> operator-(const MV_Vector<TYPE> & x, const MV_Vector<TYPE> & y)
-{
+MV_Vector<TYPE> operator-(const MV_Vector<TYPE>& x, const MV_Vector<TYPE>& y) {
   int N = x.size();
 
-  if( N != y.size() )
-    {
+  if (N != y.size()) {
     cout << "Incompatible vector lengths in -." << endl;
     exit(1);
-    }
+  }
 
   MV_Vector<TYPE> result(N);
-  for( int i = 0; i < N; i++ )
-    {
+  for (int i = 0; i < N; i++) {
     result(i) = x(i) - y(i);
-    }
+  }
   return result;
 }
 
 template <class TYPE>
-MV_Vector<TYPE> & operator+=(MV_Vector<TYPE> & x, const MV_Vector<TYPE> & y)
-{
+MV_Vector<TYPE>& operator+=(MV_Vector<TYPE>& x, const MV_Vector<TYPE>& y) {
   int N = x.size();
 
-  if( N != y.size() )
-    {
+  if (N != y.size()) {
     cout << "Incompatible vector lengths in -." << endl;
     exit(1);
-    }
-  for( int i = 0; i < N; i++ )
-    {
+  }
+  for (int i = 0; i < N; i++) {
     x(i) += y(i);
-    }
+  }
   return x;
 }
 
 template <class TYPE>
-MV_Vector<TYPE> & operator-=(MV_Vector<TYPE> & x, const MV_Vector<TYPE> & y)
-{
+MV_Vector<TYPE>& operator-=(MV_Vector<TYPE>& x, const MV_Vector<TYPE>& y) {
   int N = x.size();
 
-  if( N != y.size() )
-    {
+  if (N != y.size()) {
     cout << "Incompatible vector lengths in -." << endl;
     exit(1);
-    }
-  for( int i = 0; i < N; i++ )
-    {
+  }
+  for (int i = 0; i < N; i++) {
     x(i) -= y(i);
-    }
+  }
   return x;
 }
 
 //  norm and dot product functions for the MV_Vector<> class
 
 template <class TYPE>
-TYPE dot(const MV_Vector<TYPE> & x, const MV_Vector<TYPE> & y)
-{
-
+TYPE dot(const MV_Vector<TYPE>& x, const MV_Vector<TYPE>& y) {
   //  Check for compatible dimensions:
-  if( x.size() != y.size() )
-    {
+  if (x.size() != y.size()) {
     cout << "Incompatible dimensions in dot(). " << endl;
     exit(1);
-    }
+  }
 
   TYPE temp = 0.0;
-  for( int i = 0; i < x.size(); i++ )
-    {
+  for (int i = 0; i < x.size(); i++) {
     temp += x(i) * y(i);
-    }
+  }
   return temp;
 }
 
 template <class TYPE>
-TYPE norm(const MV_Vector<TYPE> & x)
-{
+TYPE norm(const MV_Vector<TYPE>& x) {
   TYPE temp = dot(x, x);
 
   return sqrt(temp);

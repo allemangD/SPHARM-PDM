@@ -37,4 +37,4 @@
 
 int QSort(VECTOR_int& v, int base_ptr, int total_elems);
 
-int QSort(VECTOR_int & v, VECTOR_int& x, int base_ptr, int total_elems);
+int QSort(VECTOR_int& v, VECTOR_int& x, int base_ptr, int total_elems);

@@ -31,21 +31,19 @@
 #ifndef _MV_VECTOR_ALL_H_
 #define _MV_VECTOR_ALL_H_
 
-#include "mvconfig.h"
-
-#include "mvvrf.h"
-#include "mvvd.h"
-#include "mvvi.h"
-#include "mvvf.h"
-
-#include "mvblasf.h"
-#include "mvblasd.h"
-#include "mvblasi.h"
-
 #include <complex>
-#include "mvvc.h"
-#include "mvblasc.h"
+
 #include "iotext.h"
+#include "mvblasc.h"
+#include "mvblasd.h"
+#include "mvblasf.h"
+#include "mvblasi.h"
+#include "mvconfig.h"
+#include "mvvc.h"
+#include "mvvd.h"
+#include "mvvf.h"
+#include "mvvi.h"
+#include "mvvrf.h"
 
 #endif
 

@@ -10,42 +10,38 @@
 
 #include "SphericalHarmonicSpatialObject.h"
 
-namespace neurolib
-{
+namespace neurolib {
 
-class SphericalHarmonicCoefficientFileWriterException : public itk::ExceptionObject
-{
-public:
+class SphericalHarmonicCoefficientFileWriterException : public itk::ExceptionObject {
+ public:
   /** Run-time information. */
-  itkTypeMacro( SphericalHarmonicCoefficientFileWriterException, ExceptionObject );
+  itkTypeMacro(SphericalHarmonicCoefficientFileWriterException, ExceptionObject);
 
   /** Constructor. */
-  SphericalHarmonicCoefficientFileWriterException(const char *file, unsigned int line,
-                                                  const char* message = "Error in IO") :
-    ExceptionObject(file, line)
-  {
+  SphericalHarmonicCoefficientFileWriterException(
+      const char* file, unsigned int line, const char* message = "Error in IO"
+  )
+      : ExceptionObject(file, line) {
     SetDescription(message);
   }
 
   /** Constructor. */
-  SphericalHarmonicCoefficientFileWriterException(const std::string & file, unsigned int line,
-                                                  const char* message = "Error in IO") :
-    ExceptionObject(file, line)
-  {
+  SphericalHarmonicCoefficientFileWriterException(
+      const std::string& file, unsigned int line, const char* message = "Error in IO"
+  )
+      : ExceptionObject(file, line) {
     SetDescription(message);
   }
-
 };
 
-class SphericalHarmonicCoefficientFileWriter : public itk::Object
-{
-public:
+class SphericalHarmonicCoefficientFileWriter : public itk::Object {
+ public:
   /** SmartPointer typedef support */
   typedef SphericalHarmonicCoefficientFileWriter Self;
-  typedef itk::SmartPointer<Self>                Pointer;
+  typedef itk::SmartPointer<Self> Pointer;
 
-  typedef SphericalHarmonicSpatialObject::ScalarType   ScalarType;
-  typedef SphericalHarmonicSpatialObject::CoefType     CoefType;
+  typedef SphericalHarmonicSpatialObject::ScalarType ScalarType;
+  typedef SphericalHarmonicSpatialObject::CoefType CoefType;
   typedef SphericalHarmonicSpatialObject::CoefListType CoefListType;
 
   /** Method for creation through the object factory */
@@ -64,21 +60,18 @@ public:
   /** Get the filename */
   itkGetStringMacro(FileName);
 
-  void SetInput(CoefListType& coeflist)
-  {
-    m_Coefs = coeflist;
-  }
+  void SetInput(CoefListType& coeflist) { m_Coefs = coeflist; }
 
-protected:
+ protected:
   std::string m_FileName;
 
   SphericalHarmonicCoefficientFileWriter();
   virtual ~SphericalHarmonicCoefficientFileWriter() ITK_OVERRIDE;
-private:
-  CoefListType m_Coefs;
 
+ private:
+  CoefListType m_Coefs;
 };
 
-} // end namespace neurolib
+}  // end namespace neurolib
 
 #endif

@@ -9,53 +9,52 @@
  *  \author Christine Xu
  */
 
+#include <vector>
+
 #include "itkDefaultDynamicMeshTraits.h"
 #include "itkMesh.h"
-#include "itkSpatialObject.h"
 #include "itkMeshSpatialObject.h"
-
-#include <vector>
+#include "itkSpatialObject.h"
 
 #define SphericalHarmonicSpatialObjectDimension 3
 
-namespace neurolib
-{
+namespace neurolib {
 
-class SphericalHarmonicSpatialObject : public itk::SpatialObject<SphericalHarmonicSpatialObjectDimension>
-{
-public:
-
-  typedef SphericalHarmonicSpatialObject                                  Self;
-  typedef itk::SpatialObject<SphericalHarmonicSpatialObjectDimension>     Superclass;
-  typedef itk::SmartPointer<Self>                                         Pointer;
-  typedef itk::SmartPointer<const Self>                                   ConstPointer;
-  typedef itk::SmartPointer<Superclass>                                   SuperclassPointer;
-  typedef double                                                          ScalarType;
+class SphericalHarmonicSpatialObject : public itk::SpatialObject<SphericalHarmonicSpatialObjectDimension> {
+ public:
+  typedef SphericalHarmonicSpatialObject Self;
+  typedef itk::SpatialObject<SphericalHarmonicSpatialObjectDimension> Superclass;
+  typedef itk::SmartPointer<Self> Pointer;
+  typedef itk::SmartPointer<const Self> ConstPointer;
+  typedef itk::SmartPointer<Superclass> SuperclassPointer;
+  typedef double ScalarType;
   typedef itk::Point<ScalarType, SphericalHarmonicSpatialObjectDimension> CoefType;
-  typedef std::vector<CoefType>                                           CoefListType;
-  typedef Superclass::PointType                                           PointType;
-  typedef Superclass::TransformType                                       TransformType;
-  typedef Superclass::BoundingBoxType                                     BoundingBoxType;
+  typedef std::vector<CoefType> CoefListType;
+  typedef Superclass::PointType PointType;
+  typedef Superclass::TransformType TransformType;
+  typedef Superclass::BoundingBoxType BoundingBoxType;
 
-  /** Traits for Mesh, DefaultDynamicMeshTraits<TPixelType, VPointDimension, VMaxTopologicalDimension, TCoordRep> */
-  typedef itk::DefaultDynamicMeshTraits<float, SphericalHarmonicSpatialObjectDimension,
-                                        SphericalHarmonicSpatialObjectDimension, double> MeshTrait;
-  typedef itk::Mesh<float, SphericalHarmonicSpatialObjectDimension,
-                    MeshTrait>                                                           MeshType;
-  typedef itk::MeshSpatialObject<MeshType>
-  MeshSpatialObjectType;
-  typedef MeshSpatialObjectType::Pointer
-  MeshSpatialObjectPointer;
+  /** Traits for Mesh, DefaultDynamicMeshTraits<TPixelType, VPointDimension, VMaxTopologicalDimension,
+   * TCoordRep> */
+  typedef itk::DefaultDynamicMeshTraits<
+      float,
+      SphericalHarmonicSpatialObjectDimension,
+      SphericalHarmonicSpatialObjectDimension,
+      double>
+      MeshTrait;
+  typedef itk::Mesh<float, SphericalHarmonicSpatialObjectDimension, MeshTrait> MeshType;
+  typedef itk::MeshSpatialObject<MeshType> MeshSpatialObjectType;
+  typedef MeshSpatialObjectType::Pointer MeshSpatialObjectPointer;
 
   // typedef typename SphericalHarmonicMeshSource MeshSourceType;
 
   itkStaticConstMacro(NumberOfDimension, unsigned int, SphericalHarmonicSpatialObjectDimension);
 
   /** Method for creation through the object factory. */
-  itkNewMacro( Self );
+  itkNewMacro(Self);
 
   /** Method for creation through the object factory. */
-  itkTypeMacro( SphericalHarmonicSpatialObject, SpatialObject );
+  itkTypeMacro(SphericalHarmonicSpatialObject, SpatialObject);
 
   /** Get the count */
   itkGetConstReferenceMacro(Count, int);
@@ -79,28 +78,28 @@ public:
   // itkGetConstReferenceMacro(Triangs, int);
 
   /** Get the coefficients */
-  void GetCoefs(CoefListType& coeflist) const; // Deep copy of the m_Coefs
+  void GetCoefs(CoefListType& coeflist) const;  // Deep copy of the m_Coefs
 
   void SetCoefs(CoefListType& coeflist);
 
   /** Derived spatial geometric functions from the superclass SpatialObject,
       resulting directly from calling corresponding functions of p_coefsMeshSpatialObject. */
-  bool  ValueAtInObjectSpace(const PointType & point, double & value, unsigned int depth = 0, const std::string & name = "") const override;
+  bool ValueAtInObjectSpace(
+      const PointType& point, double& value, unsigned int depth = 0, const std::string& name = ""
+  ) const override;
 
-  bool  IsEvaluableAtInObjectSpace(const PointType & point, unsigned int depth = 0,
-                             const std::string & name = "") const override;
+  bool IsEvaluableAtInObjectSpace(
+      const PointType& point, unsigned int depth = 0, const std::string& name = ""
+  ) const override;
 
-  bool  IsInsideInObjectSpace(const PointType & point) const override;
-
-  
+  bool IsInsideInObjectSpace(const PointType& point) const override;
 
   void PrintSelf(std::ostream& os, itk::Indent indent) const override;
 
-/** The four vitual geometric functions calls this function whenever the b_Dirty is true. */
+  /** The four vitual geometric functions calls this function whenever the b_Dirty is true. */
   void ComputeHiddenMeshSpatialObject();
 
-protected:
-
+ protected:
   SphericalHarmonicSpatialObject();
   ~SphericalHarmonicSpatialObject() override;
 
@@ -137,9 +136,8 @@ protected:
   /** This MeshSpatialObject is hidden in the background
       and is used for providing results for the above geometric functions. */
   MeshSpatialObjectPointer m_CoefsMeshSpatialObject;
-
 };
 
-} // end namespace neurolib
+}  // end namespace neurolib
 
-#endif // __namicSphericalHarmonicSpatialObject_h
+#endif  // __namicSphericalHarmonicSpatialObject_h

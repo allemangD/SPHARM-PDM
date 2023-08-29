@@ -27,23 +27,23 @@
 
 #include "mvconfig.h"
 
-MV_Vector_COMPLEX & operator*=(MV_Vector_COMPLEX & x, const COMPLEX & a);
+MV_Vector_COMPLEX& operator*=(MV_Vector_COMPLEX& x, const COMPLEX& a);
 
-MV_Vector_COMPLEX operator*(const COMPLEX & a, const MV_Vector_COMPLEX & x);
+MV_Vector_COMPLEX operator*(const COMPLEX& a, const MV_Vector_COMPLEX& x);
 
-MV_Vector_COMPLEX operator*(const MV_Vector_COMPLEX & x, const COMPLEX & a);
+MV_Vector_COMPLEX operator*(const MV_Vector_COMPLEX& x, const COMPLEX& a);
 
-MV_Vector_COMPLEX operator+(const MV_Vector_COMPLEX & x, const MV_Vector_COMPLEX & y);
+MV_Vector_COMPLEX operator+(const MV_Vector_COMPLEX& x, const MV_Vector_COMPLEX& y);
 
-MV_Vector_COMPLEX operator-(const MV_Vector_COMPLEX & x, const MV_Vector_COMPLEX & y);
+MV_Vector_COMPLEX operator-(const MV_Vector_COMPLEX& x, const MV_Vector_COMPLEX& y);
 
-MV_Vector_COMPLEX & operator+=(MV_Vector_COMPLEX & x, const MV_Vector_COMPLEX & y);
+MV_Vector_COMPLEX& operator+=(MV_Vector_COMPLEX& x, const MV_Vector_COMPLEX& y);
 
-MV_Vector_COMPLEX & operator-=(MV_Vector_COMPLEX & x, const MV_Vector_COMPLEX & y);
+MV_Vector_COMPLEX& operator-=(MV_Vector_COMPLEX& x, const MV_Vector_COMPLEX& y);
 
-COMPLEX dot(const MV_Vector_COMPLEX & x, const MV_Vector_COMPLEX & y);
+COMPLEX dot(const MV_Vector_COMPLEX& x, const MV_Vector_COMPLEX& y);
 
-COMPLEX norm(const MV_Vector_COMPLEX & x);
+COMPLEX norm(const MV_Vector_COMPLEX& x);
 
 #endif
 
