@@ -24,3 +24,4 @@ More information
 -------------
 Find the tool on [NITRC](http://www.nitrc.org/projects/spharm-pdm/)
 
+https://doi.org/10.1006/cviu.1995.1013
