@@ -80,21 +80,22 @@ def neighbors(data: vtk.vtkPolyData, pt: int):
 # build latitude system
 lat_arr = scipy.sparse.dok_array(
     (
-        ed.GetNumberOfPoints(),
-        ed.GetNumberOfPoints(),
+        ed.GetNumberOfPoints() - 2,
+        ed.GetNumberOfPoints() - 2,
     )
 )
 
-for pt in range(0, ed.GetNumberOfPoints()):
+for pt in range(1, ed.GetNumberOfPoints() - 1):
     ns = neighbors(ed, pt)
     for n in ns:
-        lat_arr[pt, n] = -1
-    lat_arr[pt, pt] = len(ns)
-lat_arr[0, :] = lat_arr[-1, :] = 0
-lat_arr[0, 0] = lat_arr[-1, -1] = 1
+        if 0 < n < ed.GetNumberOfPoints() - 1:
+            lat_arr[pt - 1, n - 1] = -1
+    lat_arr[pt - 1, pt - 1] = len(ns)
 
-b = np.zeros((ed.GetNumberOfPoints(),))
-b[-1] = np.pi
+b = np.zeros((ed.GetNumberOfPoints() - 2,))
+for n in neighbors(ed, ed.GetNumberOfPoints() - 1):
+    if 0 < n < ed.GetNumberOfPoints() - 1:
+        b[n - 1] = np.pi
 
 # solve the systems
 lat_arr = scipy.sparse.csr_array(lat_arr)
@@ -107,8 +108,10 @@ out.DeepCopy(clean.GetOutput())
 pd: vtk.vtkPointData = out.GetPointData()
 arr = vtk.vtkFloatArray()
 arr.SetName("Latitude")
-for i, v in enumerate(lat, 0):
+arr.InsertNextValue(0)
+for v in enumerate(lat):
     arr.InsertNextValue(v)
+arr.InsertNextValue(np.pi)
 pd.AddArray(arr)
 
 writer = vtk.vtkPolyDataWriter()
