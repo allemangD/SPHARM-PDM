@@ -77,41 +77,91 @@ def neighbors(data: vtk.vtkPolyData, pt: int):
     return point_ids
 
 
-# build latitude system
-lat_arr = scipy.sparse.dok_array(
+# build main matrix
+count = ed.GetNumberOfPoints()
+arr = scipy.sparse.dok_array(
     (
-        ed.GetNumberOfPoints() - 2,
-        ed.GetNumberOfPoints() - 2,
+        count - 2,
+        count - 2,
     )
 )
 
-for pt in range(1, ed.GetNumberOfPoints() - 1):
-    ns = neighbors(ed, pt)
-    for n in ns:
-        if 0 < n < ed.GetNumberOfPoints() - 1:
-            lat_arr[pt - 1, n - 1] = -1
-    lat_arr[pt - 1, pt - 1] = len(ns)
+lut: dict[int, list[int]] = {}
 
-b = np.zeros((ed.GetNumberOfPoints() - 2,))
-for n in neighbors(ed, ed.GetNumberOfPoints() - 1):
-    if 0 < n < ed.GetNumberOfPoints() - 1:
+for pt in range(count):
+    lut[pt] = neighbors(ed, pt)
+
+north = 0
+south = count - 1
+
+for pt in range(1, south):
+    for n in lut[pt]:
+        if north < n < south:
+            arr[pt - 1, n - 1] = -1
+    arr[pt - 1, pt - 1] = len(lut[pt])
+
+b = np.zeros((count - 2,))
+for n in neighbors(ed, south):
+    if north < n < south:
         b[n - 1] = np.pi
 
-# solve the systems
-lat_arr = scipy.sparse.csr_array(lat_arr)
-
+# build the latitude matrix
+lat_arr = scipy.sparse.csr_array(arr)
 lat = scipy.sparse.linalg.spsolve(lat_arr, b)
+
+# build the longitude matrix
+
+for n in neighbors(ed, north):
+    if north < n < south:
+        arr[n - 1, n - 1] -= 1
+
+lon_arr = scipy.sparse.csr_array(arr)
+lon = scipy.sparse.linalg.spsolve(lon_arr, b)
+
+# c = np.zeros((count - 2,))
+# prev = north
+# curr = next(iter(lut[north]))
+# max_ = 0.0
+# while curr < south:
+#     for n in lut[curr]:
+#         if lat[n - 1] > max_:
+#             next_ = n
+#         if n == prev:
+#             prev_ = n
+#
+# lon_arr = scipy.sparse.csr_array(arr)
+# lon = scipy.sparse.linalg.spsolve(lon_arr, c)
 
 out = vtk.vtkPolyData()
 out.DeepCopy(clean.GetOutput())
 
 pd: vtk.vtkPointData = out.GetPointData()
+
 arr = vtk.vtkFloatArray()
 arr.SetName("Latitude")
 arr.InsertNextValue(0)
-for v in enumerate(lat):
+for i, v in enumerate(lat):
     arr.InsertNextValue(v)
 arr.InsertNextValue(np.pi)
+pd.AddArray(arr)
+
+geo = vtk.vtkDijkstraGraphGeodesicPath()
+geo.SetInputData(ed)
+geo.SetStartVertex(north)
+geo.SetEndVertex(south)
+geo.Update()
+short_path:vtk.vtkIdList = geo.GetIdList()
+
+arr = vtk.vtkFloatArray()
+arr.SetName("Longitude")
+arr.SetNumberOfValues(ed.GetNumberOfPoints())
+arr.Fill(0)
+for idx in range(short_path.GetNumberOfIds()):
+    arr.SetValue(short_path.GetId(idx), 1)
+# arr.InsertNextValue(0)
+# for i, v in enumerate(lon):
+#     arr.InsertNextValue(i)
+# arr.InsertNextValue(0)
 pd.AddArray(arr)
 
 writer = vtk.vtkPolyDataWriter()
@@ -124,9 +174,23 @@ subprocess.run(
         "f3d",
         OUT / "mesh.vtk",
         "--output",
-        OUT / "mesh.png",
+        OUT / "lat.png",
         "--resolution",
-        "1024,1280",
-        "-e",
+        "1200,1000",
+        "--edges",
+        "--scalars=Latitude",
+    ]
+)
+
+subprocess.run(
+    [
+        "f3d",
+        OUT / "mesh.vtk",
+        "--output",
+        OUT / "lon.png",
+        "--resolution",
+        "1200,1000",
+        "--edges",
+        "--scalars=Longitude",
     ]
 )
