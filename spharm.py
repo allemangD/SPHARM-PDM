@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 
 import vtk
+import vtk.util.numpy_support
 import numpy as np
 from scipy.sparse import csgraph
 from scipy.sparse import dok_array
@@ -55,16 +56,17 @@ clean = vtk.vtkCleanPolyData()
 clean.SetInputConnection(net.GetOutputPort())
 clean.PointMergingOn()
 
-norms = vtk.vtkPolyDataNormals()
-norms.SetInputConnection(clean.GetOutputPort())
-norms.ComputeCellNormalsOff()
-norms.ComputePointNormalsOn()
-norms.SplittingOff()
-norms.AutoOrientNormalsOn()
-norms.FlipNormalsOff()
+normals = vtk.vtkPolyDataNormals()
+normals.SetInputConnection(clean.GetOutputPort())
+normals.ComputeCellNormalsOff()
+normals.ComputePointNormalsOn()
+normals.SplittingOff()
+normals.AutoOrientNormalsOn()
+normals.FlipNormalsOff()
+normals.ConsistencyOn()
 
 feat = vtk.vtkExtractEdges()
-feat.SetInputConnection(norms.GetOutputPort())
+feat.SetInputConnection(normals.GetOutputPort())
 feat.UseAllPointsOn()
 feat.Update()
 
@@ -154,6 +156,8 @@ for prv, idx, nxt in np.lib.stride_tricks.sliding_window_view(short_path, 3):
         if n in short_path:
             # don't alter the path itself
             continue
+
+        # if west
         if np.dot(norms[idx], np.cross(verts[nxt] - verts[idx], verts[n] - verts[idx])) > 0:
             values[n] += 2 * np.pi
             values[idx] -= 2 * np.pi
@@ -168,24 +172,16 @@ lon[1:-1] = spsolve(lon_laplacian_matrix[1:-1, 1:-1], values[1:-1])
 # endregion
 
 out = vtk.vtkPolyData()
-out.DeepCopy(clean.GetOutput())
+out.DeepCopy(normals.GetOutput())
 
 pd: vtk.vtkPointData = out.GetPointData()
 
-arr = vtk.vtkFloatArray()
+arr = vtk.util.numpy_support.numpy_to_vtk(lat)
 arr.SetName("Latitude")
-arr.InsertNextValue(0)
-for i, v in enumerate(lat):
-    arr.InsertNextValue(v)
-arr.InsertNextValue(np.pi)
 pd.AddArray(arr)
 
-arr = vtk.vtkFloatArray()
+arr = vtk.util.numpy_support.numpy_to_vtk(lon)
 arr.SetName("Longitude")
-arr.SetNumberOfValues(ed.GetNumberOfPoints())
-arr.Fill(0)
-for idx, val in enumerate(lon):
-    arr.SetValue(idx, val)
 pd.AddArray(arr)
 
 writer = vtk.vtkPolyDataWriter()
