@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import numpy as np
@@ -41,76 +42,35 @@ sphere = np.array(
     ]
 ).T
 
-############################################################
+# Compute areas for the whole dataset.
+# Currently takes on the order of 25ms for 17000 vertices. Could probably be improved a bit by avoiding
+# large temporary numpy objects, especially in the diag_a, diag_b, and cosines calculations.
 
-areas_each = []
-spats_each = []
-
-for cell in cells:
-    corners = sphere[cell, :]
-
-    diag_a = corners[[1, 0, 1, 0]]
-    diag_b = corners[[3, 2, 3, 2]]
-    diag_dot = diag_a * diag_b
-    a_dot = diag_a * corners
-    b_dot = diag_b * corners
-    cosines = diag_dot.sum(-1) - a_dot.sum(-1) * b_dot.sum(-1)
-
-    # 1 . 3 - 1 . 0 * 0 . 3
-    # 0 . 2 - 0 . 1 * 1 . 2
-    # 1 . 3 - 1 . 2 * 2 . 3
-    # 0 . 2 - 0 . 3 * 3 . 2
-
-    # spat is the old inequality list
-    spat = np.linalg.det(
-        corners[
-            [
-                [3, 0, 1],
-                [0, 1, 2],
-                [1, 2, 3],
-                [2, 3, 0],
-            ]
-        ]
-    )
-
-    area = np.arctan2(cosines, spat).sum()
-    area = np.fmod(area + 8.5 * np.pi, np.pi) - 0.5 * np.pi
-
-    areas_each.append(area)
-    spats_each.append(spat)
-
-areas_each = np.array(areas_each)
-
-print(cells.shape)
 print(sphere.shape)
+
+start = time.time()
+
+angle_det_indices = [
+    [3, 0, 1],
+    [0, 1, 2],
+    [1, 2, 3],
+    [2, 3, 0],
+]
+
+diag_a_indices = [1, 0, 1, 0]
+diag_b_indices = [3, 2, 3, 2]
+
 corners = sphere[cells, :]
 
-diag_a = corners[:, [1, 0, 1, 0]]
-diag_b = corners[:, [3, 2, 3, 2]]
-cosines = (diag_a * diag_b).sum(-1) - (diag_a * corners).sum(-1) * (
-    diag_b * corners
-).sum(-1)
+diag_a = corners[:, diag_a_indices]
+diag_b = corners[:, diag_b_indices]
+dots = (diag_a * diag_b).sum(-1) - (diag_a * corners).sum(-1) * (diag_b * corners).sum(-1)
 
-spats = np.linalg.det(
-    corners[
-        :,
-        [
-            [3, 0, 1],
-            [0, 1, 2],
-            [1, 2, 3],
-            [2, 3, 0],
-        ],
-    ]
-)
+spats = np.linalg.det(corners[:, angle_det_indices])
 
-areas = np.arctan2(cosines, spats).sum(-1)
+areas = np.arctan2(dots, spats).sum(-1)
 areas = np.fmod(areas + 8.5 * np.pi, np.pi) - 0.5 * np.pi
 
-print(np.allclose(areas, areas_each))
-print(np.allclose(spats, spats_each))
+end = time.time()
 
-# corners[:, [3, 0, 1]]
-# print(corners.shape)
-# print(corners)
-
-# now compute everything in one go with np...
+print(end - start)
