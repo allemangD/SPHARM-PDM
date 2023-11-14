@@ -1,12 +1,15 @@
+from pathlib import Path
 import subprocess
 
 import vtk
-
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
-
-from pathlib import Path
+import scipy.sparse.csgraph
+from scipy.sparse import csgraph
+from scipy.sparse import dok_array
+from scipy.sparse import csr_array
+from scipy.sparse.linalg import spsolve
 
 # MESH_ROOT = Path('~/Documents/chop/output/GenParaMesh/').expanduser()
 # LABEL_ROOT = Path(
@@ -64,7 +67,8 @@ ed: vtk.vtkPolyData = feat.GetOutput()
 ed.BuildLinks()
 
 
-def neighbors(data: vtk.vtkPolyData, pt: int):
+def neighbors(data: vtk.vtkPolyData, pt: int) -> set:
+    """Returns the set of point ids that share an edge with the given point id."""
     cell_ids = vtk.vtkIdList()
     data.GetPointCells(pt, cell_ids)
     point_ids = set()
@@ -77,46 +81,41 @@ def neighbors(data: vtk.vtkPolyData, pt: int):
     return point_ids
 
 
-# build main matrix
 count = ed.GetNumberOfPoints()
-arr = scipy.sparse.dok_array(
-    (
-        count - 2,
-        count - 2,
-    )
-)
 
-lut: dict[int, list[int]] = {}
-
-for pt in range(count):
-    lut[pt] = neighbors(ed, pt)
-
+# These aren't exactly constants, they are named indices, but treat them like constants anyway.
 north = 0
 south = count - 1
 
-for pt in range(1, south):
-    for n in lut[pt]:
-        if north < n < south:
-            arr[pt - 1, n - 1] = -1
-    arr[pt - 1, pt - 1] = len(lut[pt])
+adjacency_matrix = dok_array((count, count))
+for pt in range(count):
+    for n in neighbors(ed, pt):
+        adjacency_matrix[pt, n] = 1
+adjacency_matrix = adjacency_matrix.tocsr()
 
-b = np.zeros((count - 2,))
-for n in neighbors(ed, south):
-    if north < n < south:
-        b[n - 1] = np.pi
+# noinspection PyTypeChecker
+# csgraph.laplacian is incorrectly type-hinted.
+laplacian_matrix = csgraph.laplacian(
+    # Sparse array support REQUIRES scipy>=1.11.3.
+    adjacency_matrix
+).tocsr()
 
-# build the latitude matrix
-lat_arr = scipy.sparse.csr_array(arr)
-lat = scipy.sparse.linalg.spsolve(lat_arr, b)
+# Solve for latitude problem. sub_matrix contains elements for all nodes _except_ the poles.
+lat = np.zeros((count,))
+lat[south] = np.pi
+
+values: csr_array = adjacency_matrix[:, [south]] * lat[south]
+result = spsolve(laplacian_matrix[1:-1, 1:-1], values[1:-1])
+lat[1:-1] = result
 
 # build the longitude matrix
 
-for n in neighbors(ed, north):
-    if north < n < south:
-        arr[n - 1, n - 1] -= 1
-
-lon_arr = scipy.sparse.csr_array(arr)
-lon = scipy.sparse.linalg.spsolve(lon_arr, b)
+# for n in neighbors(ed, NORTH):
+#     if NORTH < n < SOUTH:
+#         arr[n - 1, n - 1] -= 1
+#
+# lon_arr = scipy.sparse.csr_array(arr)
+# lon = scipy.sparse.linalg.spsolve(lon_arr, b)
 
 # c = np.zeros((count - 2,))
 # prev = north
@@ -150,7 +149,7 @@ geo.SetInputData(ed)
 geo.SetStartVertex(north)
 geo.SetEndVertex(south)
 geo.Update()
-short_path:vtk.vtkIdList = geo.GetIdList()
+short_path: vtk.vtkIdList = geo.GetIdList()
 
 arr = vtk.vtkFloatArray()
 arr.SetName("Longitude")
