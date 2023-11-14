@@ -3,12 +3,9 @@ import subprocess
 
 import vtk
 import numpy as np
-import scipy.sparse
-import scipy.sparse.linalg
-import scipy.sparse.csgraph
 from scipy.sparse import csgraph
 from scipy.sparse import dok_array
-from scipy.sparse import csr_array
+from scipy.sparse import find
 from scipy.sparse.linalg import spsolve
 
 # MESH_ROOT = Path('~/Documents/chop/output/GenParaMesh/').expanduser()
@@ -58,8 +55,16 @@ clean = vtk.vtkCleanPolyData()
 clean.SetInputConnection(net.GetOutputPort())
 clean.PointMergingOn()
 
+norms = vtk.vtkPolyDataNormals()
+norms.SetInputConnection(clean.GetOutputPort())
+norms.ComputeCellNormalsOff()
+norms.ComputePointNormalsOn()
+norms.SplittingOff()
+norms.AutoOrientNormalsOn()
+norms.FlipNormalsOff()
+
 feat = vtk.vtkExtractEdges()
-feat.SetInputConnection(clean.GetOutputPort())
+feat.SetInputConnection(norms.GetOutputPort())
 feat.UseAllPointsOn()
 feat.Update()
 
@@ -81,6 +86,23 @@ def neighbors(data: vtk.vtkPolyData, pt: int) -> set:
     return point_ids
 
 
+def extract_points(data: vtk.vtkPolyData) -> np.ndarray:
+    """Returns point coordinates in each row of a matrix."""
+    res = np.zeros((data.GetNumberOfPoints(), 3))
+    for idx in range(data.GetNumberOfPoints()):
+        data.GetPoint(idx, res[idx])
+    return res
+
+
+def extract_normals(data: vtk.vtkPolyData) -> np.ndarray:
+    res = np.zeros((data.GetNumberOfPoints(), 3))
+    for idx in range(data.GetNumberOfPoints()):
+        pts: vtk.vtkPointData = data.GetPointData()
+        normals: vtk.vtkFloatArray = pts.GetNormals()
+        res[idx] = normals.GetTuple(idx)
+    return res
+
+
 count = ed.GetNumberOfPoints()
 
 # These aren't exactly constants, they are named indices, but treat them like constants anyway.
@@ -100,36 +122,50 @@ laplacian_matrix = csgraph.laplacian(
     adjacency_matrix
 ).tocsr()
 
-# Solve for latitude problem. sub_matrix contains elements for all nodes _except_ the poles.
+# region Latitude problem.
 lat = np.zeros((count,))
 lat[south] = np.pi
 
-values: csr_array = adjacency_matrix[:, [south]] * lat[south]
-result = spsolve(laplacian_matrix[1:-1, 1:-1], values[1:-1])
-lat[1:-1] = result
+# `[1:-1]` mask to avoid the poles; those are the boundary conditions.
+# `values` is `pi` for nodes adjacent to the south pole and 0 elsewhere. Multiply trick keeps things sparse.
+values = adjacency_matrix[:, [south]] * lat[south]
+lat[1:-1] = spsolve(laplacian_matrix[1:-1, 1:-1], values[1:-1])
+# endregion
 
-# build the longitude matrix
+# region Longitude problem.
+lon = np.zeros((count,))
 
-# for n in neighbors(ed, NORTH):
-#     if NORTH < n < SOUTH:
-#         arr[n - 1, n - 1] -= 1
-#
-# lon_arr = scipy.sparse.csr_array(arr)
-# lon = scipy.sparse.linalg.spsolve(lon_arr, b)
+geo = vtk.vtkDijkstraGraphGeodesicPath()
+geo.SetInputData(ed)
+geo.SetStartVertex(south)
+geo.SetEndVertex(north)
+geo.Update()
+short_path: np.ndarray = np.array(
+    [geo.GetIdList().GetId(idx) for idx in range(geo.GetIdList().GetNumberOfIds())]
+)
 
-# c = np.zeros((count - 2,))
-# prev = north
-# curr = next(iter(lut[north]))
-# max_ = 0.0
-# while curr < south:
-#     for n in lut[curr]:
-#         if lat[n - 1] > max_:
-#             next_ = n
-#         if n == prev:
-#             prev_ = n
-#
-# lon_arr = scipy.sparse.csr_array(arr)
-# lon = scipy.sparse.linalg.spsolve(lon_arr, c)
+verts = extract_points(ed)
+norms = extract_normals(ed)
+
+values = np.zeros((count,))
+for prv, idx, nxt in np.lib.stride_tricks.sliding_window_view(short_path, 3):
+    I, _, _ = find(adjacency_matrix[:, [idx]])
+    for n in I:
+        if n in short_path:
+            # don't alter the path itself
+            continue
+        if np.dot(norms[idx], np.cross(verts[nxt] - verts[idx], verts[n] - verts[idx])) > 0:
+            values[n] += 2 * np.pi
+            values[idx] -= 2 * np.pi
+
+lon_laplacian_matrix = laplacian_matrix.copy()
+I, _, _ = find(adjacency_matrix[:, [north, south]])
+for n in I:
+    lon_laplacian_matrix[n, n] -= 1
+lon_laplacian_matrix[0, 0] += 2
+
+lon[1:-1] = spsolve(lon_laplacian_matrix[1:-1, 1:-1], values[1:-1])
+# endregion
 
 out = vtk.vtkPolyData()
 out.DeepCopy(clean.GetOutput())
@@ -144,23 +180,12 @@ for i, v in enumerate(lat):
 arr.InsertNextValue(np.pi)
 pd.AddArray(arr)
 
-geo = vtk.vtkDijkstraGraphGeodesicPath()
-geo.SetInputData(ed)
-geo.SetStartVertex(north)
-geo.SetEndVertex(south)
-geo.Update()
-short_path: vtk.vtkIdList = geo.GetIdList()
-
 arr = vtk.vtkFloatArray()
 arr.SetName("Longitude")
 arr.SetNumberOfValues(ed.GetNumberOfPoints())
 arr.Fill(0)
-for idx in range(short_path.GetNumberOfIds()):
-    arr.SetValue(short_path.GetId(idx), 1)
-# arr.InsertNextValue(0)
-# for i, v in enumerate(lon):
-#     arr.InsertNextValue(i)
-# arr.InsertNextValue(0)
+for idx, val in enumerate(lon):
+    arr.SetValue(idx, val)
 pd.AddArray(arr)
 
 writer = vtk.vtkPolyDataWriter()
