@@ -1,12 +1,10 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
+import numpy as np
 import vtk
 import vtk.util.numpy_support
-import numpy as np
-from scipy.sparse import csgraph
-from scipy.sparse import dok_array
-from scipy.sparse import find
+from scipy.sparse import csgraph, dok_array, find
 from scipy.sparse.linalg import spsolve
 
 # MESH_ROOT = Path('~/Documents/chop/output/GenParaMesh/').expanduser()
