@@ -1,4 +1,9 @@
-import time
+"""
+Apply equal-area and angle optimizations to the parametrization.
+
+This processes the output of spharm.py.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -48,29 +53,79 @@ sphere = np.array(
 
 print(sphere.shape)
 
-start = time.time()
-
-angle_det_indices = [
+ANGLE_DET_INDICES = [
     [3, 0, 1],
     [0, 1, 2],
     [1, 2, 3],
     [2, 3, 0],
 ]
 
-diag_a_indices = [1, 0, 1, 0]
-diag_b_indices = [3, 2, 3, 2]
+DIAG_A_INDICES = [1, 0, 1, 0]
+DIAG_B_INDICES = [3, 2, 3, 2]
 
-corners = sphere[cells, :]
+IDEAL_CELL_AREA = 4 * np.pi / cells.shape[0]
 
-diag_a = corners[:, diag_a_indices]
-diag_b = corners[:, diag_b_indices]
-dots = (diag_a * diag_b).sum(-1) - (diag_a * corners).sum(-1) * (diag_b * corners).sum(-1)
 
-spats = np.linalg.det(corners[:, angle_det_indices])
+def area_variance(x):
+    print('comp')
+    cart = x.reshape(sphere.shape)
+    corners = cart[cells, :]
 
-areas = np.arctan2(dots, spats).sum(-1)
-areas = np.fmod(areas + 8.5 * np.pi, np.pi) - 0.5 * np.pi
+    diag_a = corners[:, DIAG_A_INDICES]
+    diag_b = corners[:, DIAG_B_INDICES]
+    dots = (diag_a * diag_b).sum(-1) - (diag_a * corners).sum(-1) * (diag_b * corners).sum(-1)
 
-end = time.time()
+    spats = np.linalg.det(corners[:, ANGLE_DET_INDICES])
 
-print(end - start)
+    areas = np.arctan2(dots, spats).sum(-1)
+    areas = np.fmod(areas + 8.5 * np.pi, np.pi) - 0.5 * np.pi
+
+    variance = ((areas - IDEAL_CELL_AREA) * (areas - IDEAL_CELL_AREA)).sum()
+
+    return variance
+
+def area_variance_jac(x):
+    cart = x.reshape(sphere.shape)
+    corners = cart[cells, :]
+
+
+import scipy.optimize
+
+print('about to optimize')
+res = scipy.optimize.minimize(
+    area_variance,
+    sphere.ravel(),
+    method="newton-cg",
+    tol=30,
+    options={"maxiter": 1, 'verbose': True},
+    jac='2-point',
+    hess=scipy.optimize.BFGS(),
+
+)
+print(res)
+
+# The constraints:
+
+# minimize:
+# constrain
+
+# variance' = 2 * (areas -
+
+# `spats > 0`  # (?) not sure if this is > or <
+# `areas == UNIT_SPHERE_SURFACE_AREA / sphere.shape[0]`
+
+
+# See https://docs.scipy.org/doc/scipy/tutorial/optimize.html#constrained-minimization-of-multivariate
+# -scalar-functions-minimize section on defining constraints. We are optimizing the [sphere] positions s.t.
+# `spats>0` and `areas=4pi/n` as defined above. So we need nonlinear constraints, so we need a jacobian and
+# a hessian. See if there's some way to autodiff those or if I need to manually do that part. The
+# computations aren't _so_ terrible so I might be able to manually compute it.
+
+# What is the function to optimize? We have some constraints: spats>0 and areas=4pi/n. But it's unclear
+# what the actual function to be minimized is.
+
+# we want to minimize
+#  - the variance of areas: (x - Ex) ^ 2.
+#  - this is implicitly positive.
+# we want to constrain
+#  - 0 <= areas must be positive.
