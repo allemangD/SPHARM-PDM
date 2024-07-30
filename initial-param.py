@@ -6,11 +6,13 @@ This processes the output of spharm.py.
 
 from pathlib import Path
 
-from scipy.optimize import minimize
+import scipy.sparse
+from scipy.optimize import minimize, OptimizeResult
 from scipy.optimize import NonlinearConstraint
 
 import numpy as np
 import vtk.util.numpy_support
+from scipy.sparse import csr_array, dok_array
 
 
 def neighbors(data: vtk.vtkPolyData, pt: int) -> set:
@@ -27,10 +29,13 @@ def neighbors(data: vtk.vtkPolyData, pt: int) -> set:
     return point_ids
 
 
-OUT = Path("./out")
-OUT.mkdir(exist_ok=True)
+# mesh_path = Path('sample/duck.vtk')
+# mesh_path = Path('sample/two-voxel.vtk')
 
-mesh_path = OUT.joinpath("mesh.vtk")
+mesh_path = Path('sample/hourglass_seg.vtk')
+# mesh_path = Path('sample/cilinder_seg.vtk')
+
+# mesh_path = Path('sample/hippocampus.vtk')
 
 reader = vtk.vtkPolyDataReader()
 reader.SetFileName(str(mesh_path))
@@ -65,7 +70,7 @@ sphere = np.array(
     ]
 ).T
 
-print(sphere.shape)
+# print(sphere.shape)
 
 IDEAL_CELL_AREA = 4 * np.pi / cells.shape[0]
 
@@ -129,14 +134,45 @@ def norms(x) -> np.ndarray:
     """To constrain norm of each vectors to 1."""
 
     points = x.reshape(sphere.shape)
-    # return np.linalg.norm(points, axis=1)
-    return np.linalg.norm(points, axis=1) - 1  # constrain eq 0
 
+    # norm = np.linalg.norm(points, axis=1)
+    # return np.tile(norm, (1, 3)).ravel()
+
+    norm = np.linalg.norm(points, axis=1)
+    return norm
+
+
+def norms_jac(x) -> np.ndarray:
+    """To constrain norm of each vector to 1."""
+
+    # Jacobian (gradient) at any point is normal to the sphere at that point.
+
+    points = x.reshape(sphere.shape)
+    norm = np.linalg.norm(points, axis=1)
+    normalized = points / norm[:, None]
+
+    idxs = np.arange(len(points))
+
+    res = dok_array((len(points), len(x)))
+    for k in range(points.shape[1]):
+        res[idxs, points.shape[1] * idxs + k] = normalized[:, k]
+
+    return res
+    # res = csr_array((len(points), len(x)))
+    # res[idxs, idxs * 3] = 1
+    # # res[]
+    #
+    # # should return a (V, 3V) array.
+    # # each col is a constraint;
+    #
+    # # return normalized.ravel()
+    # return normalized.ravel().reshape(1, -1)
 
 def areas(x) -> np.ndarray:
     """To constrain area of each cell to 4pi/num_cells"""
 
     points = x.reshape(sphere.shape)
+
     corners = points[cells, :]
 
     diag_a = corners[:, DIAG_A_INDICES]
@@ -148,6 +184,7 @@ def areas(x) -> np.ndarray:
     areas = np.arctan2(dots, spats).sum(-1)
     areas = np.fmod(areas + 8.5 * np.pi, np.pi) - 0.5 * np.pi
 
+    print(areas.shape)
     # return areas
     return areas - IDEAL_CELL_AREA  # constrain eq 0
 
@@ -160,33 +197,72 @@ def areas(x) -> np.ndarray:
 # dict constraints for cobyla, slsqp
 
 # - cobyla, cobyqa do not use gradient
-# - slsqp out of memory
+#   - constraints of type 'eq' not handled by la
+
+# - slsqp fast but out of memory on big mesh
 # - trust-constr is all that's left. it works fine for the small mesh `duck` but ran for 10 hours
 #     without terminating on a tricuspid leaflet.
 #     todo play with tolerances to get it to terminate faster? MAYBE this will work?
 
+print('about to minimize')
+
+# print(norms_jac(sphere.ravel()).shape)
+
+
+def cb(xi, res: OptimizeResult):
+    # print(res)
+    # print(res.nit, res.nfev, res.njev, res.constr_nfev, res.constr_njev, res.constr_nhev)
+    print(res)
+    # print('constr min', *[c.min() for c in res.constr], 'max', *[c.max() for c in res.constr])
+    print()
+
 res = minimize(
     goal_func,
     sphere.ravel(),
+
+    # callback=cb,
+
     jac=gradient,
+    hess='2-point',
     constraints=[
-        # dict(type='eq', fun=norms),
-        # dict(type='eq', fun=areas),
-        NonlinearConstraint(norms, 0, 0),
-        NonlinearConstraint(areas, 0, 0),
+        NonlinearConstraint(
+            norms, 1, 1,
+            jac=norms_jac,
+            hess='2-point',
+        ),
     ],
+
+    # method="COBYQA",
+    # options=dict(
+    #     maxiter=5,
+    #     # maxfev=1000,
+    #     disp=True,
+    # ),
+
+    # method='SLSQP',
+    # options=dict(
+    #     maxiter=50,
+    #     disp=True,
+    # ),
+
     method='trust-constr',
     options=dict(
-        maxiter=50,
-        sparse_jacobian=True,
-        # xtol=1e-1,
+        maxiter=10,
+        # xtol=1,
+        # gtol=1,
+        verbose=2,
+        # sparse_jacobian=True,
+        # xtol=1e-2,
+        # verbose=2,
     ),
+
 )
 print(res)
 result = res.x.reshape(sphere.shape)
-# print(result - sphere)
-print(result)
-print(areas(result.ravel()))
+# print(result)
+# print(areas(res.x))
+
+# print(areas(result.ravel()))
 # print(result)
 # print(sphere)
 
@@ -216,7 +292,6 @@ print(areas(result.ravel()))
 
 # `spats > 0`  # (?) not sure if this is > or <
 # `areas == UNIT_SPHERE_SURFACE_AREA / sphere.shape[0]`
-
 
 # See https://docs.scipy.org/doc/scipy/tutorial/optimize.html#constrained-minimization-of-multivariate
 # -scalar-functions-minimize section on defining constraints. We are optimizing the [sphere] positions s.t.
