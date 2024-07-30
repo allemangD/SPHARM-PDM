@@ -71,6 +71,20 @@ IDEAL_CELL_AREA = 4 * np.pi / cells.shape[0]
 
 EDGES = [[0, 1], [1, 2], [2, 3], [3, 0]]
 
+ANGLE_DET_INDICES = [
+    [3, 0, 1],
+    [0, 1, 2],
+    [1, 2, 3],
+    [2, 3, 0],
+]
+
+DIAG_A_INDICES = [1, 0, 1, 0]
+DIAG_B_INDICES = [3, 2, 3, 2]
+
+
+# todo: let `x` be the spherical coordinates; then there is no need for norm constraint. would need
+#   to recompute `sphere` in goal_func, so better to merge `gradient` into that with `jac=True`.
+#   https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
 
 def goal_func(x) -> float:
     """
@@ -111,17 +125,6 @@ def gradient(x) -> np.ndarray:
     return (points * prod[:, None] - nbsum).ravel()
 
 
-ANGLE_DET_INDICES = [
-    [3, 0, 1],
-    [0, 1, 2],
-    [1, 2, 3],
-    [2, 3, 0],
-]
-
-DIAG_A_INDICES = [1, 0, 1, 0]
-DIAG_B_INDICES = [3, 2, 3, 2]
-
-
 def norms(x) -> np.ndarray:
     """To constrain norm of each vectors to 1."""
 
@@ -149,73 +152,33 @@ def areas(x) -> np.ndarray:
     return areas - IDEAL_CELL_AREA  # constrain eq 0
 
 
-# print(areas(sphere.ravel()))
-# print(norm(sphere.ravel()).shape)
-# print(len(sphere))
+# constraints are only supported with:
+# COBYLA, COBYQA, SLSQP, trust-constr
+#
+# object constraints for cobyqa, trust-constr
+#
+# dict constraints for cobyla, slsqp
 
-# u, v = EDGES[0]
-# print(cells[:, u])
-# print(cells[:, v])
-# exit()
-
-# print(gradient(sphere.ravel()))
-# exit()
-
-# def area_variance(x):
-#     cart = x.reshape(sphere.shape)
-#     corners = cart[cells, :]
-#
-#     diag_a = corners[:, DIAG_A_INDICES]
-#     diag_b = corners[:, DIAG_B_INDICES]
-#     dots = (diag_a * diag_b).sum(-1) - (diag_a * corners).sum(-1) * (diag_b * corners).sum(-1)
-#
-#     spats = np.linalg.det(corners[:, ANGLE_DET_INDICES])
-#
-#     areas = np.arctan2(dots, spats).sum(-1)
-#     areas = np.fmod(areas + 8.5 * np.pi, np.pi) - 0.5 * np.pi
-#
-#     variance = ((areas - IDEAL_CELL_AREA) * (areas - IDEAL_CELL_AREA)).sum()
-#
-#     return variance
-#
-# def area_variance_jac(x):
-#     cart = x.reshape(sphere.shape)
-#     corners = cart[cells, :]
-#
-#
-# def jac(x):
-#     cart = x.reshape(sphere.shape)
-#
-#     # return the gradient vector.
-#     # d area_variance / d cart
-#
-#     # should be reshaped back to x.
-#
-#     # should probably be moved into `area_variance(x) -> float, vec` with `jac=True`.
-#     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
-#
-#     # for each component in the input - how does the area variance change if we tweak that component?
-#
-#     # problem: right now x is the cartesian coordinates. This is wrong. I want to optimize
-#     # the spherical parametrization. That should only be 2 components for each vertex, not 3.
-
+# - cobyla, cobyqa do not use gradient
+# - slsqp out of memory
+# - trust-constr is all that's left. it works fine for the small mesh `duck` but ran for 10 hours
+#     without terminating on a tricuspid leaflet.
+#     todo play with tolerances to get it to terminate faster? MAYBE this will work?
 
 res = minimize(
     goal_func,
     sphere.ravel(),
     jac=gradient,
-    # constraints=[
-    #     dict(type='eq', fun=norms),
-    #     dict(type='eq', fun=areas),
-    # ],
-    # method='trust-constr',
     constraints=[
+        # dict(type='eq', fun=norms),
+        # dict(type='eq', fun=areas),
         NonlinearConstraint(norms, 0, 0),
         NonlinearConstraint(areas, 0, 0),
     ],
     method='trust-constr',
     options=dict(
         maxiter=50,
+        sparse_jacobian=True,
         # xtol=1e-1,
     ),
 )
