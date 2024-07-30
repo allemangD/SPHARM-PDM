@@ -23,7 +23,9 @@ from scipy.sparse.linalg import spsolve
 label_path = Path(
     "~/Documents/chop/data/HLHS/Comprehensive Fontan Validated Segmentations/labels_post_processed/8844-0012-01_tricuspid_septal_leaflet.nii.gz"
 )
+
 # label_path = Path('~/src/SPHARM-PDM/sample/duck.nii.gz')
+
 # label_path = Path('~/src/SPHARM-PDM/sample/two-voxel.nii.gz')
 
 label_path = label_path.expanduser().resolve()
