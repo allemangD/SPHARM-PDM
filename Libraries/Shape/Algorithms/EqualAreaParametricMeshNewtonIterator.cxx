@@ -52,8 +52,10 @@ EqualAreaParametricMeshSparseMatrix::~EqualAreaParametricMeshSparseMatrix()
   delete a;
 }
 
-void EqualAreaParametricMeshSparseMatrix::from_net(const IteratorSurfaceNet& net, int n_active, int *active)
-{
+/**
+ * Define the structure of the matrix given the surface net and active constraints. Does not set any values.
+ */
+void EqualAreaParametricMeshSparseMatrix::from_net(const IteratorSurfaceNet &net, int n_active, int *active) {
   n_row = net.nface - 1 + n_active;
   n_col = 3 * net.nvert;
   // assert(n_row <= max_row, "too many rows in from_net.");
@@ -63,36 +65,76 @@ void EqualAreaParametricMeshSparseMatrix::from_net(const IteratorSurfaceNet& net
 
   int in_pos = 0;
   int i;
-  for( i = 0; i < net.nface - 1; i++ )
-    {
+  for (i = 0; i < net.nface - 1; i++) {
     ia[i] = in_pos;
-    for( int corner = 0; corner < 4; corner++ )
-      {
+    for (int corner = 0; corner < 4; corner++) {
       int vertNr = net.face[4 * i + corner];
-      for( int coord = 0; coord < 3; coord++ )
-        {
+      for (int coord = 0; coord < 3; coord++) {
         ja[in_pos++] = 3 * vertNr + coord;
-        }
       }
     }
-  for( i = 0; i < n_active; i++ )
-    {
+  }
+  for (i = 0; i < n_active; i++) {
     ia[i + net.nface - 1] = in_pos;
     int faceNr = active[i] / 4;
-    for( int corner = 0; corner < 4; corner++ )
+    for (int corner = 0; corner < 4; corner++) {
+      if ((active[i] + 4 - corner) % 4 != 2) // opposite corner has no influence
       {
-      if( (active[i] + 4 - corner) % 4 != 2 )        // opposite corner has no influence
-        {
         int vertNr = net.face[4 * faceNr + corner];
-        for( int coord = 0; coord < 3; coord++ )
-          {
+        for (int coord = 0; coord < 3; coord++) {
           ja[in_pos++] = 3 * vertNr + coord;
-          }
         }
       }
     }
+  }
   ia[n_row] = in_pos;
   // assert(in_pos == 3*(4*(net.nface-1) + 3*n_active), "wrong in_pos count in from_net");
+}
+
+/**
+ * Define the values of the matrix to be the jacobian by finite differences. Assume the structure has already
+ * been defined with ::from_net.
+ */
+void EqualAreaParametricMeshNewtonIterator::jacobian(const EqualAreaParametricMeshSparseMatrix &A) {
+  const double desired_area = 4 * M_PI / net.nface;
+
+  for (int col = 0; col < A.n_col; col++) // assume x == this->m_x_try
+  {
+    this->m_x_try[col] = this->m_x[col] + par.delta; // go a finite step
+    int col_0 = 3 * (col / 3);                       // column rounded down: x-component
+    normalize(1, 3, this->m_x_try + col_0);
+
+    /// Find the inequality part at the end of this column
+    int j_stop;
+    for (j_stop = A.iaT[col + 1]; A.rowT[j_stop - 1] >= net.nface - 1; j_stop--) {}
+    int j_ineq = j_stop;
+
+    double sines[4];
+    for (int j = A.iaT[col]; j < j_stop; j++) {
+      double area_c = spher_area4(this->m_x_try, net.face + 4 * A.rowT[j], sines) - desired_area;
+      A.a[A.jaT[j]] = (area_c - c_hat[A.rowT[j]]) / par.delta;
+
+      int c_nr;
+      while (j_ineq < A.iaT[col + 1] && (c_nr = active[A.rowT[j_ineq] - (net.nface - 1)]) / 4 == A.rowT[j]) {
+        A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
+        j_ineq++;
+      }
+    }
+
+    if (j_ineq < A.iaT[col + 1]) // unconstrained face: row = nface-1
+    {
+      (void)spher_area4(this->m_x_try, net.face + 4 * (net.nface - 1), sines);
+      while (j_ineq < A.iaT[col + 1]) {
+        int c_nr = active[A.rowT[j_ineq] - (net.nface - 1)];
+        A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
+        j_ineq++;
+      }
+    }
+
+    this->m_x_try[col_0] = this->m_x[col_0]; // back up the finite step
+    this->m_x_try[col_0 + 1] = this->m_x[col_0 + 1];
+    this->m_x_try[col_0 + 2] = this->m_x[col_0 + 2];
+  }
 }
 
 void EqualAreaParametricMeshSparseMatrix::invTables()
@@ -562,16 +604,16 @@ double EqualAreaParametricMeshNewtonIterator::iterate()
   jacobi_aTa.set_aTa(jacobi_aT);
   jacobi_aTa.solve(struct_change, c_hat, this->m_proj_dx);
   jacobi_aT.multT(this->m_proj_dx, this->m_newton_dir);
-  if( count - 1 == par.print_itn )                  // debug
-    {
-    std::cout << "jacobian " <<  par.print_itn << std::endl; // debug
-    jacobi_aT.print("aT", 0);
-    estimate_jacobian();
-    jacobi_aTa.print("aTa", 0);
-    write_vector("cHat", net.nface - 1 + n_active, c_hat, 0);
-    write_vector("newtonDir", 3 * net.nvert, this->m_newton_dir, 0);
-    write_vector("x", 3 * net.nvert, this->m_x, 0);
-    }
+  // if (count - 1 == par.print_itn) // debug
+  // {
+  //   std::cout << "jacobian " << par.print_itn << std::endl; // debug
+  //   jacobi_aT.print("aT", 0);
+  //   estimate_jacobian();
+  //   jacobi_aTa.print("aTa", 0);
+  //   write_vector("cHat", net.nface - 1 + n_active, c_hat, 0);
+  //   write_vector("newtonDir", 3 * net.nvert, this->m_newton_dir, 0);
+  //   write_vector("x", 3 * net.nvert, this->m_x, 0);
+  // }
 
   int    act, act_keep = no_activation;
   double badness;
@@ -710,51 +752,6 @@ void EqualAreaParametricMeshNewtonIterator::calc_gradient()
     grad[3 * v] = prod * this->m_x[3 * v] - nbsum[0];
     grad[3 * v + 1] = prod * this->m_x[3 * v + 1] - nbsum[1];
     grad[3 * v + 2] = prod * this->m_x[3 * v + 2] - nbsum[2];
-    }
-}
-
-void EqualAreaParametricMeshNewtonIterator::jacobian(const EqualAreaParametricMeshSparseMatrix & A)      // by finite
-                                                                                                         // differences
-{
-  const double desired_area = 4 * M_PI / net.nface;
-
-  for( int col = 0; col < A.n_col; col++ )      // assume x == this->m_x_try
-    {
-    this->m_x_try[col] = this->m_x[col] + par.delta;        // go a finite step
-    int col_0 = 3 * (col / 3);              // column rounded down: x-component
-    normalize(1, 3, this->m_x_try + col_0);
-    int j_stop;
-    for( j_stop = A.iaT[col + 1]; A.rowT[j_stop - 1] >= net.nface - 1; j_stop-- )
-      {
-      ;
-      }
-    int    j_ineq = j_stop;
-    double sines[4];
-    for( int j = A.iaT[col]; j < j_stop; j++ )
-      {
-      double area_c = spher_area4(this->m_x_try, net.face + 4 * A.rowT[j], sines) - desired_area;
-      A.a[A.jaT[j]] = (area_c - c_hat[A.rowT[j]]) / par.delta;
-      int c_nr;
-      while( j_ineq < A.iaT[col + 1]
-             && (c_nr = active[A.rowT[j_ineq] - (net.nface - 1)]) / 4 == A.rowT[j] )
-        {
-        A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
-        j_ineq++;
-        }
-      }
-    if( j_ineq < A.iaT[col + 1] )            // unconstrained face: row = nface-1
-      {
-      (void) spher_area4(this->m_x_try, net.face + 4 * (net.nface - 1), sines);
-      while( j_ineq < A.iaT[col + 1] )
-        {
-        int c_nr = active[A.rowT[j_ineq] - (net.nface - 1)];
-        A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
-        j_ineq++;
-        }
-      }
-    this->m_x_try[col_0] = this->m_x[col_0];              // back up the finite step
-    this->m_x_try[col_0 + 1] = this->m_x[col_0 + 1];
-    this->m_x_try[col_0 + 2] = this->m_x[col_0 + 2];
     }
 }
 
@@ -908,71 +905,60 @@ double EqualAreaParametricMeshNewtonIterator::aug_lagrangian(double step, int & 
   return lagr + this->m_rho * c_sqr_sum;
 }
 
-void EqualAreaParametricMeshNewtonIterator::estimate_jacobian()
-{
-  char         form[1000];
-  const double stepSize = 0.001;
-  int          i;
-  double *     old_dx = this->m_dx, dum_bad, *a_row = new double[net.nface - 1 + n_active];
-
-  this->m_dx = new double[3 * net.nvert];
-  std::cout << "a = Table[,{" << 3 * net.nvert << "}];\n";
-  copy_vector(this->m_x_try, this->m_x, 3 * net.nvert);
-  normalize(net.nvert, 3, this->m_x_try);          // almost no effect; for exact equality
-  for( i = 0; i < 3 * net.nvert; this->m_dx[i++] = 0.0 )
-    {
-    ;
-    }
-  for(    i = 0; i < 3 * net.nvert; i++ )
-    {
-    this->m_dx[i] = 1.0;
-    int act = step_and_check(stepSize, c_hat_l, dum_bad);
-    if( act == no_activation )
-      {
-      for( int j = 0; j < net.nface - 1 + n_active; j++ )
-        {
-        a_row[j] = (c_hat_l[j] - c_hat[j]) / stepSize;
-        }
-      sprintf(form, "a[[%d]]", i + 1);
-      write_vector(form, net.nface - 1 + n_active, a_row, 0);
-      }
-    else
-      {
-      std::cout << "a[[" << i + 1 << "]] = activate[" << act << "];\n";
-      }
-    this->m_dx[i] = 0.0;
-    }
-  copy_vector(this->m_x_try, this->m_x, 3 * net.nvert);          // return to initial position
-  delete this->m_dx;
-  delete [] a_row;
-  this->m_dx = old_dx;
-}
-
-void EqualAreaParametricMeshNewtonIterator::estimate_gradient()
-{
-  const double stepSize = 0.00001;
-  double *     old_dx = this->m_dx, *gradEstim = new double[3 * net.nvert];
-
-  this->m_dx = new double[3 * net.nvert];
-  int i;
-  for( i = 0; i < 3 * net.nvert; this->m_dx[i++] = 0.0 )
-    {
-    ;
-    }
-  spher_step(0, this->m_x, this->m_dx, net.nvert, this->m_x_try);
-  double goal = goal_func();
-  for(    i = 0; i < 3 * net.nvert; i++ )
-    {
-    this->m_dx[i] = 1.0;
-    spher_step(stepSize, this->m_x, this->m_dx, net.nvert, this->m_x_try);
-    this->m_dx[i] = 0.0;
-    gradEstim[i] = (goal_func() - goal) / stepSize;
-    }
-  copy_vector(this->m_x_try, this->m_x, 3 * net.nvert);          // return to initial position
-  write_vector("gradEstim", 3 * net.nvert, gradEstim, 0);
-  delete this->m_dx;
-  this->m_dx = old_dx;
-}
+// void EqualAreaParametricMeshNewtonIterator::estimate_jacobian() {
+//   char form[1000];
+//   const double stepSize = 0.001;
+//   int i;
+//   double *old_dx = this->m_dx, dum_bad, *a_row = new double[net.nface - 1 + n_active];
+//
+//   this->m_dx = new double[3 * net.nvert];
+//   std::cout << "a = Table[,{" << 3 * net.nvert << "}];\n";
+//   copy_vector(this->m_x_try, this->m_x, 3 * net.nvert);
+//   normalize(net.nvert, 3, this->m_x_try); // almost no effect; for exact equality
+//   for (i = 0; i < 3 * net.nvert; this->m_dx[i++] = 0.0) {}
+//
+//   for (i = 0; i < 3 * net.nvert; i++) {
+//     this->m_dx[i] = 1.0;
+//     int act = step_and_check(stepSize, c_hat_l, dum_bad);
+//     if (act == no_activation) {
+//       for (int j = 0; j < net.nface - 1 + n_active; j++) {
+//         a_row[j] = (c_hat_l[j] - c_hat[j]) / stepSize;
+//       }
+//       sprintf(form, "a[[%d]]", i + 1);
+//       write_vector(form, net.nface - 1 + n_active, a_row, 0);
+//     } else {
+//       std::cout << "a[[" << i + 1 << "]] = activate[" << act << "];\n";
+//     }
+//     this->m_dx[i] = 0.0;
+//   }
+//   copy_vector(this->m_x_try, this->m_x, 3 * net.nvert); // return to initial position
+//   delete this->m_dx;
+//   delete[] a_row;
+//   this->m_dx = old_dx;
+// }
+//
+// void EqualAreaParametricMeshNewtonIterator::estimate_gradient() {
+//   const double stepSize = 0.00001;
+//   double *old_dx = this->m_dx, *gradEstim = new double[3 * net.nvert];
+//
+//   this->m_dx = new double[3 * net.nvert];
+//   int i;
+//   for (i = 0; i < 3 * net.nvert; this->m_dx[i++] = 0.0) {
+//     ;
+//   }
+//   spher_step(0, this->m_x, this->m_dx, net.nvert, this->m_x_try);
+//   double goal = goal_func();
+//   for (i = 0; i < 3 * net.nvert; i++) {
+//     this->m_dx[i] = 1.0;
+//     spher_step(stepSize, this->m_x, this->m_dx, net.nvert, this->m_x_try);
+//     this->m_dx[i] = 0.0;
+//     gradEstim[i] = (goal_func() - goal) / stepSize;
+//   }
+//   copy_vector(this->m_x_try, this->m_x, 3 * net.nvert); // return to initial position
+//   write_vector("gradEstim", 3 * net.nvert, gradEstim, 0);
+//   delete this->m_dx;
+//   this->m_dx = old_dx;
+// }
 
 struct CompRows
   {
