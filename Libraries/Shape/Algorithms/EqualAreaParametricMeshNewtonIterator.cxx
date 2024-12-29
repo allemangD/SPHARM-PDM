@@ -1,25 +1,13 @@
-
 #include <iostream>
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <vector>
 
 #include "EqualAreaParametricMeshNewtonIterator.h"
 
 // sparse matrix library stuff
-#include "bicg.h"           // IML++ biconjugate gradient template
-#include "bicgstab.h"       // IML++ biconjugate gradient stabilized  template
 #include "cg.h"             // IML++ Conjugate gradient template
-#include "cgs.h"            // IML++ Conjugate gradient squared template
-#include "cheby.h"          // IML++ chebyshev template
-#include "compcol_double.h" // Compressed column matrix header
-#include "diagpre_double.h" // Diagonal preconditioner
-#include "gmres.h"          // IML++ generalized minium residual template
 #include "icpre_double.h"   // IC preconditioner
-#include "ilupre_double.h"  // ILU preconditioner
-#include "ir.h"             // IML++ richardson template
-#include "mvblasd.h"        // MV_Vector level 1 BLAS
-#include "qmr.h"            // IML++ quasi minimum residual template
 
 const int no_activation = -1;
 const double quite_bad = 1000;
