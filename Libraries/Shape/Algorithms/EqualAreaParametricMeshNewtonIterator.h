@@ -106,6 +106,10 @@ private:
 
   void     jacobian(const EqualAreaParametricMeshSparseMatrix &);
 
+  void     estimate_gradient();
+
+  void     estimate_jacobian();
+
   int     activate(int act, const char *); // returns 0 if no_activation, else 1
 
   int     inactivate(int);              // returns 0 if delayed, else 1
@@ -132,11 +136,21 @@ private:
   void generate_matrix(struct CompRows *mat, const IteratorSurfaceNet& net);
 
   // utility functions
+  double    dotproduct3(const double *, const double *);
 
+  void    normalize(const int nvectors, const int dimension, double *x);
+
+  double spher_area4(const double *x, const int corner[4], double angle[4]);
   void    spher_step(double step, double *src, double *vec,  int, double *dest);
 
   void    copy_vector(double *dest, const double *src, const  int length);
 
+  double det3(const double *, const double *, const double *);
+
+  inline double sqr(double val)
+  {
+    return val * val;
+  }
 
 public:
   EqualAreaParametricMeshNewtonIterator(const IteratorSurfaceNet& netref, EqualAreaParametricMeshParameter& par);
