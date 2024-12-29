@@ -186,16 +186,16 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   Eigen::SparseMatrix<double> mat(n_row, n_col);
   mat.setFromTriplets(entries.begin(), entries.end());
 
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> cg;
-  cg.setMaxIterations(5000);
-  cg.setTolerance(1e-14);
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::DiagonalPreconditioner<double>> cg;
+  cg.setMaxIterations(500);
+  cg.setTolerance(1e-10);
   cg.compute(mat);
 
   Eigen::Map<Eigen::VectorXd> bmap(b, mat.cols());
   Eigen::Map<Eigen::VectorXd> xmap(x, mat.rows());
   xmap = cg.solve(bmap);
 
-  std::cout << "i" << cg.iterations();
+  std::cout << "si" << cg.iterations();
 }
 
 void EqualAreaParametricMeshSparseMatrix::set_aTa(const EqualAreaParametricMeshSparseMatrix &aT) {
