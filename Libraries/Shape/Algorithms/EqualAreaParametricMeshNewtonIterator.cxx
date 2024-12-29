@@ -2,6 +2,8 @@
 #include <math.h>
 #include <iostream>
 #include <stdio.h>
+#include <vector>
+
 #include "EqualAreaParametricMeshNewtonIterator.h"
 
 // sparse matrix library stuff
@@ -152,39 +154,32 @@ void EqualAreaParametricMeshSparseMatrix::multT(double *vec, double *result)
     }
 }
 
-void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, double *rhs, double *x)
-{
+void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */,
+                                                double *b, double *x) {
+  std::vector<Eigen::Triplet<double>> entries;
+  entries.reserve(ia[n_row]);
 
-  int n_nonzero = ia[n_row];
-
-  CompRow_Mat_double A(n_row, n_row, n_nonzero, a, ia, ja);
-  // call of compressed row matrix = nxn with n_nonzero items that are non-zero, a = value vector,
-  // ia = row pointer, ja = column index
-  // Build up the structure from a grid in 0-relative compressed row format
-
-  // DiagPreconditioner_double D(A);
-  ICPreconditioner_double D(A);
-
-  int    iter = 5000;
-  double tol =  1e-14;
-
-  VECTOR_double b(n_row, 0.0);
-  VECTOR_double sol(n_row, 0.0);
-  int           i;
-
-  for( i = 0; i < n_row; i++ )
-    {
-    b[i] = rhs[i];                           // copy rhs
-
+  for (int row = 0; row < n_row; ++row) {
+    for (int j = ia[row]; j < ia[row + 1]; ++j) {
+      int col = ja[j];
+      double val = a[j];
+      entries.emplace_back(row, col, val);
     }
-  int result = CG(A, sol, b, D, iter, tol); // A * x = b, max it, tol
+  }
 
-  std::cout <<  result <<  " i" << iter;
-  for( i = 0; i < n_row; i++ )
-    {
-    x[i] = sol[i];                           // copy result
+  Eigen::SparseMatrix<double> mat(n_row, n_col);
+  mat.setFromTriplets(entries.begin(), entries.end());
 
-    }
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> cg;
+  cg.setMaxIterations(5000);
+  cg.setTolerance(1e-14);
+  cg.compute(mat);
+
+  Eigen::Map<Eigen::VectorXd> bmap(b, mat.cols());
+  Eigen::Map<Eigen::VectorXd> xmap(x, mat.rows());
+  xmap = cg.solve(bmap);
+
+  std::cout << "i" << cg.iterations();
 }
 
 void EqualAreaParametricMeshSparseMatrix::set_aTa(const EqualAreaParametricMeshSparseMatrix& aT)
