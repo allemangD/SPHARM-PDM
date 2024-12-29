@@ -155,6 +155,7 @@ BinaryMask3DEqualAreaParametricMeshSource<TInputImage>
       (net.vert[i]).neighb[j] = vert.neighb_[j];
       }
     }
+
   int * curface = net.face;
   for( int i = 0; i < net.nvert; i++ )
     {
@@ -454,8 +455,10 @@ BinaryMask3DEqualAreaParametricMeshSource<TInputImage>
 
   this->GetOutput()->SetBufferedRegion( this->GetOutput()->GetRequestedRegion() );
 
-  delete net.face;
-  delete net.vert;
+  delete optim;
+  delete[] xvec;
+  delete[] net.face;
+  delete[] net.vert;
 }
 
 /** PrintSelf */

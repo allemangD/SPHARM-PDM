@@ -16,6 +16,57 @@ const double quite_bad = 1000;
 #define M_PI 3.1415926535897932
 #endif
 
+inline double sqr(double val) { return val * val; }
+
+double det3(const double *a, const double *b, const double *c) {
+  return a[0] * (b[1] * c[2] - b[2] * c[1]) + a[1] * (b[2] * c[0] - b[0] * c[2]) +
+         a[2] * (b[0] * c[1] - b[1] * c[0]);
+}
+
+double dotproduct3(const double *a, const double *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+void normalize(const int nvectors, const int dim, double *x) {
+  for (int v = 0; v < nvectors; v++) {
+    double length2 = sqr(x[v * dim]);
+    int c;
+    for (c = 1; c < dim; c++) {
+      length2 += sqr(x[v * dim + c]);
+    }
+    double length = sqrt((double)length2);
+    for (c = 0; c < dim; c++) {
+      x[v * dim + c] /= length;
+    }
+  }
+}
+
+double spher_area4(const double *x, const int corner[4], double spat[4]) {
+  const double *a = x + 3 * corner[0];
+  const double *b = x + 3 * corner[1];
+  const double *c = x + 3 * corner[2];
+  const double *d = x + 3 * corner[3];
+
+  const double ab = dotproduct3(a, b);
+  const double ac = dotproduct3(a, c);
+  const double ad = dotproduct3(a, d);
+  const double bc = dotproduct3(b, c);
+  const double bd = dotproduct3(b, d);
+  const double cd = dotproduct3(c, d);
+
+  const double Ca = bd - ad * ab;
+  const double Cb = ac - ab * bc;
+  const double Cc = bd - bc * cd;
+  const double Cd = ac - cd * ad;
+
+  spat[0] = det3(d, a, b);
+  spat[1] = det3(a, b, c);
+  spat[2] = det3(b, c, d);
+  spat[3] = det3(c, d, a);
+
+  double area = -atan2(Ca, spat[0]) - atan2(Cb, spat[1]) - atan2(Cc, spat[2]) - atan2(Cd, spat[3]);
+
+  return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI; // CVGIP => no time for deep analysis
+} /* spher_area4 */
+
 EqualAreaParametricMeshSparseMatrix::EqualAreaParametricMeshSparseMatrix(int maxRow, int maxCol,
                                                                          int maxNonzero) {
   max_col = maxCol;
@@ -77,6 +128,96 @@ void EqualAreaParametricMeshSparseMatrix::from_net(const IteratorSurfaceNet &net
   ia[n_row] = in_pos;
   // assert(in_pos == 3*(4*(net.nface-1) + 3*n_active), "wrong in_pos count in from_net");
 }
+
+/**
+ * x is the vertices of the parametric mesh. it is initially set with ::start_values, and iteratively refined
+ * in ::iterate.
+ *
+ * net defines the connectivity of the mesh.
+ *
+ * this->m_x_try is a temporary vector the same size as x.
+ * Pre-refactor this function assumed x was already copied into it.
+ *
+ */
+// void set_jacobian(Eigen::SparseMatrix<double> &mat, const IteratorSurfaceNet &net, int n_active, int *active,
+//                   const Eigen::Matrix3Xd &x, const EqualAreaParametricMeshParameter &par,
+//                   const double *c_hat) {
+//
+//   /**
+//    * I see why it was structured this way now. The structure is oriented around the faces of the mesh, but the
+//    * jacobian is oriented around the vertices. IteratorSurfaceNet does not provide any mapping from vertices
+//    * to faces, so defining the matrix structure ahead of time serves as that mapping. But there is some index
+//    * gymnastics to recover the face index from the structure of the matrix.
+//    *
+//    * What we really need is a mapping structure that lets us say - for a given vertex, which faces depend on
+//    * this vertex? Then we must update only these locations in the matrix.
+//    *
+//    * I think that's exactly what jaT, iaT, and rowT are in some obtuse way.
+//    */
+//
+//   // Area section only. Not constraints.
+//
+//   // int n_row = net.nface - 1;
+//   // int n_col = x.size();
+//   // assert(n_col == 3 * net.nvert);
+//
+//   Eigen::Matrix3Xd tmpx = x;
+//
+//   for (int vert = 0; vert < x.cols(); vert++) {
+//     // Eigen::Vector3d cur = x.col(vert);
+//     for (int coord = 0; coord < x.rows(); ++coord) {
+//       // perterb this coordinate
+//
+//       tmpx(vert, coord) += par.delta;
+//       double area_c = spher_area4(tmpx.data(), net.face+4*)
+//       tmpx(vert, coord) = x(vert, coord);
+//
+//       // Eigen::Vector3d prt = cur;
+//       // cur(coord) += par.delta;
+//       // cur.normalize(); // keep on sphere
+//
+//       // double area_c = spher_area4(kkkk);
+//     }
+//   }
+//
+//   for (int col = 0; col < A.n_col; col++) // assume x == this->m_x_try
+//   {
+//     this->m_x_try[col] = this->m_x[col] + par.delta; // go a finite step
+//     int col_0 = 3 * (col / 3);                       // column rounded down: x-component
+//     normalize(1, 3, this->m_x_try + col_0);
+//
+//     /// Find the inequality part at the end of this column
+//     int j_stop;
+//     for (j_stop = A.iaT[col + 1]; A.rowT[j_stop - 1] >= net.nface - 1; j_stop--) {}
+//     int j_ineq = j_stop;
+//
+//     double sines[4];
+//     for (int j = A.iaT[col]; j < j_stop; j++) {
+//       double area_c = spher_area4(this->m_x_try, net.face + 4 * A.rowT[j], sines) - desired_area;
+//       A.a[A.jaT[j]] = (area_c - c_hat[A.rowT[j]]) / par.delta;
+//
+//       int c_nr;
+//       while (j_ineq < A.iaT[col + 1] && (c_nr = active[A.rowT[j_ineq] - (net.nface - 1)]) / 4 == A.rowT[j]) {
+//         A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
+//         j_ineq++;
+//       }
+//     }
+//
+//     if (j_ineq < A.iaT[col + 1]) // unconstrained face: row = nface-1
+//     {
+//       (void)spher_area4(this->m_x_try, net.face + 4 * (net.nface - 1), sines);
+//       while (j_ineq < A.iaT[col + 1]) {
+//         int c_nr = active[A.rowT[j_ineq] - (net.nface - 1)];
+//         A.a[A.jaT[j_ineq]] = (sines[c_nr % 4] - c_hat[A.rowT[j_ineq]]) / par.delta;
+//         j_ineq++;
+//       }
+//     }
+//
+//     this->m_x_try[col_0] = this->m_x[col_0]; // back up the finite step
+//     this->m_x_try[col_0 + 1] = this->m_x[col_0 + 1];
+//     this->m_x_try[col_0 + 2] = this->m_x[col_0 + 2];
+//   }
+// }
 
 /**
  * Define the values of the matrix to be the jacobian by finite differences. Assume the structure has already
@@ -1026,59 +1167,15 @@ void EqualAreaParametricMeshNewtonIterator::start_values(const IteratorSurfaceNe
     cartesian[i * 3 + 1] = sin(lati[i]) * sin(longi[i]);
     cartesian[i * 3 + 2] = cos(lati[i]);
   }
+
+  delete[] rhs;
+  delete[] lati;
+  delete[] longi;
+
+  delete[] mat.ia;
+  delete[] mat.ja;
+  delete[] mat.a;
 }
-
-double EqualAreaParametricMeshNewtonIterator::det3(const double *a, const double *b, const double *c) {
-  return a[0] * (b[1] * c[2] - b[2] * c[1]) + a[1] * (b[2] * c[0] - b[0] * c[2]) +
-         a[2] * (b[0] * c[1] - b[1] * c[0]);
-}
-
-double EqualAreaParametricMeshNewtonIterator::dotproduct3(const double *a, const double *b) {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-void EqualAreaParametricMeshNewtonIterator::normalize(const int nvectors, const int dim, double *x) {
-  for (int v = 0; v < nvectors; v++) {
-    double length2 = sqr(x[v * dim]);
-    int c;
-    for (c = 1; c < dim; c++) {
-      length2 += sqr(x[v * dim + c]);
-    }
-    double length = sqrt((double)length2);
-    for (c = 0; c < dim; c++) {
-      x[v * dim + c] /= length;
-    }
-  }
-}
-
-double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const int corner[4],
-                                                          double spat[4]) {
-  const double *a = x + 3 * corner[0];
-  const double *b = x + 3 * corner[1];
-  const double *c = x + 3 * corner[2];
-  const double *d = x + 3 * corner[3];
-
-  const double ab = dotproduct3(a, b);
-  const double ac = dotproduct3(a, c);
-  const double ad = dotproduct3(a, d);
-  const double bc = dotproduct3(b, c);
-  const double bd = dotproduct3(b, d);
-  const double cd = dotproduct3(c, d);
-
-  const double Ca = bd - ad * ab;
-  const double Cb = ac - ab * bc;
-  const double Cc = bd - bc * cd;
-  const double Cd = ac - cd * ad;
-
-  spat[0] = det3(d, a, b);
-  spat[1] = det3(a, b, c);
-  spat[2] = det3(b, c, d);
-  spat[3] = det3(c, d, a);
-
-  double area = -atan2(Ca, spat[0]) - atan2(Cb, spat[1]) - atan2(Cc, spat[2]) - atan2(Cd, spat[3]);
-
-  return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI; // CVGIP => no time for deep analysis
-} /* spher_area4 */
 
 void EqualAreaParametricMeshNewtonIterator::spher_step(double step, double *src, double *vec, int nvect,
                                                        double *dest) {
