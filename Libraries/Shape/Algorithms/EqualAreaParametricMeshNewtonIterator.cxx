@@ -165,8 +165,8 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   // DiagPreconditioner_double D(A);
   ICPreconditioner_double D(A);
 
-  int    iter = 5000;
-  double tol =  1e-14;
+  int    iter = 500;
+  double tol =  1e-9;
 
   VECTOR_double b(n_row, 0.0);
   VECTOR_double sol(n_row, 0.0);
