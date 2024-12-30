@@ -1217,31 +1217,73 @@ void EqualAreaParametricMeshNewtonIterator::normalize(const int nvectors, const 
     }
 }
 
-double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const  int corner[4], double spat[4])
-{
-  const double
-  * a = x + 3 * corner[0],
-  *b = x + 3 * corner[1],
-  *c = x + 3 * corner[2],
-  *d = x + 3 * corner[3],
-    ab = dotproduct3(a, b),
-    ac = dotproduct3(a, c),
-    ad = dotproduct3(a, d),
-    bc = dotproduct3(b, c),
-    bd = dotproduct3(b, d),
-    cd = dotproduct3(c, d),
-    Ca = bd - ad * ab,
-    Cb = ac - ab * bc,
-    Cc = bd - bc * cd,
-    Cd = ac - cd * ad;
+inline double atan_(double x) {
+  double xx = x * x;
+  // clang-format off
+  return (((((((((0.0023409909842659797) * xx + -0.013907230806988122) * xx + 0.03891189345874798) * xx +
+               -0.07153628694356204) * xx + 0.10455668228212897) * xx + -0.14148128372287927) * xx +
+            0.19983799158334908) * xx + -0.3333244432952522) * xx + 0.9999998539670474) * x;
+  // clang-format on
+}
+
+inline double atan_(double y, double x) {
+  using std::abs;
+
+  if (abs(y) <= abs(x))
+    return atan_(y / x);
+
+  double z = x / y;
+
+  if (z >= 0)
+    return M_PI / 2 - atan(z);
+  else
+    return -M_PI / 2 - atan(z);
+}
+
+inline double atan2_(double y, double x) {
+  if (x == 0) {
+    if (y > 0)
+      return M_PI / 2;
+    if (y < 0)
+      return -M_PI / 2;
+  }
+
+  if (x > 0)
+    return atan_(y, x);
+
+  if (y >= 0)
+    return atan_(y, x) + M_PI;
+  else
+    return atan_(y, x) - M_PI;
+}
+
+double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const int corner[4],
+                                                          double spat[4]) {
+  const double *a = x + 3 * corner[0];
+  const double *b = x + 3 * corner[1];
+  const double *c = x + 3 * corner[2];
+  const double *d = x + 3 * corner[3];
+
+  const double ab = dotproduct3(a, b);
+  const double ac = dotproduct3(a, c);
+  const double ad = dotproduct3(a, d);
+  const double bc = dotproduct3(b, c);
+  const double bd = dotproduct3(b, d);
+  const double cd = dotproduct3(c, d);
+
+  const double Ca = bd - ad * ab;
+  const double Cb = ac - ab * bc;
+  const double Cc = bd - bc * cd;
+  const double Cd = ac - cd * ad;
 
   spat[0] = det3(d, a, b);
   spat[1] = det3(a, b, c);
   spat[2] = det3(b, c, d);
   spat[3] = det3(c, d, a);
-  double area =
-    -atan2(Ca, spat[0]) - atan2(Cb, spat[1]) - atan2(Cc, spat[2]) - atan2(Cd, spat[3]);
-  return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI;  // CVGIP => no time for deep analysis
+
+  double area = -atan2_(Ca, spat[0]) - atan2_(Cb, spat[1]) - atan2_(Cc, spat[2]) - atan2_(Cd, spat[3]);
+
+  return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI; // CVGIP => no time for deep analysis
 } /* spher_area4 */
 
 void EqualAreaParametricMeshNewtonIterator::spher_step(double step, double *src, double *vec,  int nvect, double *dest)
