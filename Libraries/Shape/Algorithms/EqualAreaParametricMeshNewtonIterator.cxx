@@ -1052,11 +1052,23 @@ void EqualAreaParametricMeshNewtonIterator::normalize(const int nvectors, const 
 }
 
 inline double atan_(double x) {
+  using std::fma;
+
   double xx = x * x;
+
   // clang-format off
   return (((((((((0.0023409909842659797) * xx + -0.013907230806988122) * xx + 0.03891189345874798) * xx +
                -0.07153628694356204) * xx + 0.10455668228212897) * xx + -0.14148128372287927) * xx +
             0.19983799158334908) * xx + -0.3333244432952522) * xx + 0.9999998539670474) * x;
+  // clang-format on
+
+  // fma isn't inlined for some reason, I assume something to do with compiler architecture flags. The result
+  // is that it's slower than explicit multiplication.
+
+  // clang-format off
+  // return fma(fma(fma(fma(fma(fma(fma(fma(0.0023409909842659797, xx, -0.013907230806988122), xx,
+  //     0.03891189345874798), xx, -0.07153628694356204), xx, 0.10455668228212897), xx, -0.14148128372287927),
+  //     xx, 0.19983799158334908), xx, -0.3333244432952522), xx, 0.9999998539670474) * x;
   // clang-format on
 }
 
