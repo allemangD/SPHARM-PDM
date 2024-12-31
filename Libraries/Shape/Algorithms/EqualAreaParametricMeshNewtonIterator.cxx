@@ -1051,42 +1051,48 @@ void EqualAreaParametricMeshNewtonIterator::normalize(const int nvectors, const 
   }
 }
 
-inline double atan_(double x) {
-  using std::fma;
+/**
+ * Faster atan approximation via polynomial interpolation on [-1, 1].
+ */
+inline double atan_interp(double z) {
+  assert(-1 <= z and z <= 1);
 
-  double xx = x * x;
+  // Note that FMA is actually not beneficial (with GCC 13 on i9-9880H anyway) since the compiler won't inline
+  // as much. I assume this is something to do with compiler architecture flags and could be fixed. Just leave
+  // explicit mul and add instead for now.
+
+  double zz = z * z;
+
+  // Coefficients are found and verified by `atan.py`.
 
   // clang-format off
-  return (((((((((0.0023409909842659797) * xx + -0.013907230806988122) * xx + 0.03891189345874798) * xx +
-               -0.07153628694356204) * xx + 0.10455668228212897) * xx + -0.14148128372287927) * xx +
-            0.19983799158334908) * xx + -0.3333244432952522) * xx + 0.9999998539670474) * x;
-  // clang-format on
-
-  // fma isn't inlined for some reason, I assume something to do with compiler architecture flags. The result
-  // is that it's slower than explicit multiplication.
-
-  // clang-format off
-  // return fma(fma(fma(fma(fma(fma(fma(fma(0.0023409909842659797, xx, -0.013907230806988122), xx,
-  //     0.03891189345874798), xx, -0.07153628694356204), xx, 0.10455668228212897), xx, -0.14148128372287927),
-  //     xx, 0.19983799158334908), xx, -0.3333244432952522), xx, 0.9999998539670474) * x;
+  return (((((((((0.0023409909842659797) * zz + -0.013907230806988122) * zz + 0.03891189345874798) * zz +
+  -0.07153628694356204) * zz + 0.10455668228212897) * zz + -0.14148128372287927) * zz + 0.19983799158334908) *
+  zz + -0.3333244432952522) * zz + 0.9999998539670474) * z;
   // clang-format on
 }
 
-inline double atan_(double y, double x) {
+/**
+ * Helper function to extend atan_interp domain via relation `atan(z) + atan(1/z) = +-pi/2`.
+ */
+inline double atan_extended(double y, double x) {
   using std::abs;
 
   if (abs(y) <= abs(x))
-    return atan_(y / x);
+    return atan_interp(y / x);
 
   double z = x / y;
 
   if (z >= 0)
-    return M_PI / 2 - atan(z);
+    return M_PI / 2 - atan_interp(z);
   else
-    return -M_PI / 2 - atan(z);
+    return -M_PI / 2 - atan_interp(z);
 }
 
-inline double atan2_(double y, double x) {
+/**
+ * Faster atan2 approximation.
+ */
+inline double atan2_approx(double y, double x) {
   if (x == 0) {
     if (y > 0)
       return M_PI / 2;
@@ -1095,12 +1101,12 @@ inline double atan2_(double y, double x) {
   }
 
   if (x > 0)
-    return atan_(y, x);
+    return atan_extended(y, x);
 
   if (y >= 0)
-    return atan_(y, x) + M_PI;
+    return atan_extended(y, x) + M_PI;
   else
-    return atan_(y, x) - M_PI;
+    return atan_extended(y, x) - M_PI;
 }
 
 double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const int corner[4],
@@ -1127,7 +1133,8 @@ double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const
   spat[2] = det3(b, c, d);
   spat[3] = det3(c, d, a);
 
-  double area = -atan2_(Ca, spat[0]) - atan2_(Cb, spat[1]) - atan2_(Cc, spat[2]) - atan2_(Cd, spat[3]);
+  double area = -atan2_approx(Ca, spat[0]) - atan2_approx(Cb, spat[1]) - atan2_approx(Cc, spat[2]) -
+                atan2_approx(Cd, spat[3]);
 
   return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI; // CVGIP => no time for deep analysis
 } /* spher_area4 */

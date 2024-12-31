@@ -1,7 +1,7 @@
 from numpy import pi
 from math import fma
 
-def atan(x: float) -> float:
+def atan(z: float) -> float:
     raise NotImplementedError
     # implemented dynamically in main()
 
@@ -76,13 +76,13 @@ def main():
 
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
-        print('def atan(x: float) -> float:')
-        print('    xx = x*x')
+        print('def atan(z: float) -> float:')
+        print('    zz = z*z')
         print('    return', '(' * len(X), end='')
         for c in X[:-1]:
-            print(f'{c})*xx + ', end='')
+            print(f'{c})*zz + ', end='')
         c = X[-1]
-        print(f'{c})*x')
+        print(f'{c})*z')
     defn = out.getvalue()
 
     print(defn)
