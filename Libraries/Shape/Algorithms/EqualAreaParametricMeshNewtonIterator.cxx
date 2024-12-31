@@ -128,6 +128,17 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   using namespace Eigen;
   using Map = Eigen::Map<Eigen::VectorXd>;
 
+  // todo Comprehensive benchmarking of preconditioners.
+  //  There is so much variance in runtimes that it is hard to tell which of these is actually better. There's
+  //  a tradeoff between preconditioning cost for fewer total iterations. DiagonalPreconditioner runs _very_
+  //  fast, so IncompleteCholesky would need to do a very good job to compensate.
+
+  // todo Comprehensive benchmarking of storage order.
+  //  ColMajor storage order is better for assembling the matrix, but it may hurt performance here. The matrix
+  //  is symmetrixc, and ConjugateGradient assumes this, so it _shouldn't_ matter, but it would be better to
+  //  verify this.
+
+  // ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, IncompleteCholesky<double>> cg;
   ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
   cg.setMaxIterations(500);
   cg.setTolerance(5e-8);
