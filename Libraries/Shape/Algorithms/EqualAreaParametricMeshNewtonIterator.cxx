@@ -128,18 +128,25 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   using namespace Eigen;
   using Map = Eigen::Map<Eigen::VectorXd>;
 
-  // todo Comprehensive benchmarking of preconditioners.
-  //  There is so much variance in runtimes that it is hard to tell which of these is actually better. There's
-  //  a tradeoff between preconditioning cost for fewer total iterations. DiagonalPreconditioner runs _very_
-  //  fast, so IncompleteCholesky would need to do a very good job to compensate.
+  // After comprehensive benchmarking of different storage orders, storage durations, and solver
+  // implementations, I conclude the below settings are best.
 
-  // todo Comprehensive benchmarking of storage order.
-  //  ColMajor storage order is better for assembling the matrix, but it may hurt performance here. The matrix
-  //  is symmetrixc, and ConjugateGradient assumes this, so it _shouldn't_ matter, but it would be better to
-  //  verify this.
+  // The best IML++ performance used Incomplete Cholesky preconditioner.
 
-  ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, IncompleteCholesky<double>> cg;
-  // ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
+  // Eigen IncompleteCholesky preconditioner adds significant overhead, and for these problem sizes
+  // it is a net detriment.
+
+  // Eigen DiagonalPreconditioner requires more solver iterations, but up-front cost is much less.
+
+  // Eigen ConjugateGradient allows thread_local storage duration, which avoids redundant allocation
+  // calls and improves performance about 10%. IML++ doesn't readily allow this.
+  // todo investigate placement new for IML++ thread_local storage duration.
+
+  // Eigen ColMajor performs notable worse than RowMajor despite the conversion step. Combined with
+  // thread_local storage duration it is better to use the RowMajor ConjugateGradient with ColMajor
+  // member variable.
+
+  thread_local ConjugateGradient<SparseMatrix<double, RowMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
   cg.setMaxIterations(500);
   cg.setTolerance(5e-8);
   cg.compute(mat);
