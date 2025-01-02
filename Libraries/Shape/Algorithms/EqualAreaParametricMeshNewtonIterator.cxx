@@ -138,8 +138,8 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   //  is symmetrixc, and ConjugateGradient assumes this, so it _shouldn't_ matter, but it would be better to
   //  verify this.
 
-  // ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, IncompleteCholesky<double>> cg;
-  ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
+  ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, IncompleteCholesky<double>> cg;
+  // ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
   cg.setMaxIterations(500);
   cg.setTolerance(5e-8);
   cg.compute(mat);
