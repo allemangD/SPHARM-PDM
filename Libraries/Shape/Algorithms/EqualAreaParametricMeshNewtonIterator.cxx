@@ -141,7 +141,7 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   // ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, IncompleteCholesky<double>> cg;
   ConjugateGradient<SparseMatrix<double, ColMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
   cg.setMaxIterations(500);
-  cg.setTolerance(1e-10);
+  cg.setTolerance(5e-8);
   cg.compute(mat);
 
   Map(x, mat.rows()) = cg.solve(Map(b, mat.cols()));
