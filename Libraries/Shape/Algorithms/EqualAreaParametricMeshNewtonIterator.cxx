@@ -146,12 +146,15 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   // static storage duration it is better to use the RowMajor ConjugateGradient with ColMajor
   // member variable.
 
-  static ConjugateGradient<SparseMatrix<double, RowMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
+  static ConjugateGradient<SparseMatrix<float, RowMajor>, Lower | Upper, DiagonalPreconditioner<float>> cg;
   cg.setMaxIterations(5000);
   cg.setTolerance(1e-7);
-  cg.compute(mat);
+  cg.compute(mat.cast<float>());
 
-  Map(x, mat.rows()) = cg.solve(Map(b, mat.cols()));
+  static VectorXf bf;
+  bf = Map(b, mat.cols()).cast<float>();
+
+  Map(x, mat.rows()) = cg.solve(bf).cast<double>();
 
   std::cout << "si" << cg.iterations();
 }
@@ -919,7 +922,8 @@ double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const
   spat[2] = det3(b, c, d);
   spat[3] = det3(c, d, a);
 
-  double area = std::atan2(Ca, spat[0]) + std::atan2(Cb, spat[1]) + std::atan2(Cc, spat[2]) + std::atan2(Cd, spat[3]);
+  double area =
+      std::atan2(Ca, spat[0]) + std::atan2(Cb, spat[1]) + std::atan2(Cc, spat[2]) + std::atan2(Cd, spat[3]);
   return std::remainder(area, M_PI);
 }
 
