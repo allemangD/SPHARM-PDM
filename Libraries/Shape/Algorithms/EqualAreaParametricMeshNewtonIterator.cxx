@@ -393,7 +393,7 @@ double EqualAreaParametricMeshNewtonIterator::iterate() {
   }
 
   sprintf(form, " step=%6.0e act_keep=%6d", newtonStep, act_keep);
-  std::cout << form;                                    // debug
+  std::cout << form; // debug
 
   copy_vector(this->m_x, this->m_x_try, 3 * net.nvert); // accept new x
   // // write_vector("x", 3*net.nvert, x, 0);      // debug
@@ -919,8 +919,8 @@ double EqualAreaParametricMeshNewtonIterator::spher_area4(const double *x, const
   spat[2] = det3(b, c, d);
   spat[3] = det3(c, d, a);
 
-  double area = -std::atan2(Ca, spat[0]) - std::atan2(Cb, spat[1]) - std::atan2(Cc, spat[2]) -
-                std::atan2(Cd, spat[3]);
+  double area =
+      -std::atan2(Ca, spat[0]) - std::atan2(Cb, spat[1]) - std::atan2(Cc, spat[2]) - std::atan2(Cd, spat[3]);
 
   return fmod(area + 8.5 * M_PI, M_PI) - 0.5 * M_PI; // CVGIP => no time for deep analysis
 } /* spher_area4 */
