@@ -147,8 +147,8 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   // member variable.
 
   static ConjugateGradient<SparseMatrix<double, RowMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
-  cg.setMaxIterations(500);
-  cg.setTolerance(5e-8);
+  cg.setMaxIterations(5000);
+  cg.setTolerance(1e-7);
   cg.compute(mat);
 
   Map(x, mat.rows()) = cg.solve(Map(b, mat.cols()));
