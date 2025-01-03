@@ -28,7 +28,7 @@ void EqualAreaParametricMeshSparseMatrix::from_net(const IteratorSurfaceNet &net
   int n_col = 3 * net.nvert;
 
   // Reuse the same storage and avoid redundant allocations.
-  thread_local std::vector<Triplet> triplets;
+  static std::vector<Triplet> triplets;
   triplets.resize(0);
 
   int i;
@@ -72,7 +72,7 @@ void EqualAreaParametricMeshNewtonIterator::jacobian(EqualAreaParametricMeshSpar
   const int cut = net.nface - 1;
 
   // reuse this storage.
-  thread_local Eigen::Matrix3Xd tmpx;
+  static Eigen::Matrix3Xd tmpx;
   Eigen::Map<Eigen::Matrix3Xd> x(m_x, 3, net.nvert);
   tmpx = x;
 
@@ -138,15 +138,15 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
 
   // Eigen DiagonalPreconditioner requires more solver iterations, but up-front cost is much less.
 
-  // Eigen ConjugateGradient allows thread_local storage duration, which avoids redundant allocation
+  // Eigen ConjugateGradient allows static storage duration, which avoids redundant allocation
   // calls and improves performance about 10%. IML++ doesn't readily allow this.
-  // todo investigate placement new for IML++ thread_local storage duration.
+  // todo investigate placement new for IML++ static storage duration.
 
   // Eigen ColMajor performs notable worse than RowMajor despite the conversion step. Combined with
-  // thread_local storage duration it is better to use the RowMajor ConjugateGradient with ColMajor
+  // static storage duration it is better to use the RowMajor ConjugateGradient with ColMajor
   // member variable.
 
-  thread_local ConjugateGradient<SparseMatrix<double, RowMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
+  static ConjugateGradient<SparseMatrix<double, RowMajor>, Lower | Upper, DiagonalPreconditioner<double>> cg;
   cg.setMaxIterations(500);
   cg.setTolerance(5e-8);
   cg.compute(mat);
@@ -365,7 +365,7 @@ EqualAreaParametricMeshNewtonIterator::~EqualAreaParametricMeshNewtonIterator() 
 }
 
 double EqualAreaParametricMeshNewtonIterator::iterate() {
-  thread_local char form[1 << 10];
+  static char form[1 << 10];
 
   sprintf(form, "count=%3d ", count);
   std::cout << form; // print iteration number
