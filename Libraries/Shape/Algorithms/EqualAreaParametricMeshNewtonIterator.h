@@ -16,7 +16,7 @@ class EqualAreaParametricMeshSparseMatrix
 {
 public:
   // Column major ordering allows for faster iteration over rows in ::jacobian.
-  using Matrix = Eigen::SparseMatrix<double, Eigen::ColMajor>;
+  using Matrix = Eigen::SparseMatrix<float, Eigen::ColMajor>;
   using Iterator = Matrix::InnerIterator;
   using Triplet = Eigen::Triplet<Matrix::Scalar>;
 
@@ -31,7 +31,7 @@ public:
 
   void multT(double *vec, double *result);      // multiply this^T.vec
 
-  void solve(int change, double *rhs, double *x); // solve this.x == rhs
+  void solve(int change, float *rhs, float *x); // solve this.x == rhs
 
   void set_aTa(const EqualAreaParametricMeshSparseMatrix& aT);          // set this = aT . a
 };
@@ -68,7 +68,7 @@ private:
   double *                            m_x_try;
   double *                            m_newton_dir;
   double *                            m_dx;
-  double *                            m_proj_dx;
+  float *                            m_proj_dx;
   double *                            m_lambda;
   double                              m_rho;
   double                              m_alpha_step;
@@ -77,9 +77,9 @@ private:
   double *                            constr_ineq, *grad, *gradY, *aTgrad;
   int                                 n_active;
   int *                               active;
-  double *                            c_hat;
-  double *                            c_hat_l;
-  double *                            c_hat_r;
+  float *                            c_hat;
+  float *                            c_hat_l;
+  float *                            c_hat_r;
   int                                 count;
   int                                 last_complete;
   const IteratorSurfaceNet &          net;

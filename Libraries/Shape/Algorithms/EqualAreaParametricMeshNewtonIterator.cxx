@@ -80,7 +80,7 @@ void EqualAreaParametricMeshNewtonIterator::jacobian(EqualAreaParametricMeshSpar
     tmpx(col) += par.delta;        // go a finite step
     tmpx.col(col / 3).normalize(); // project back to sphere
 
-    using InnerIterator = Eigen::SparseMatrix<double, Eigen::ColMajor>::InnerIterator;
+    using InnerIterator = Eigen::SparseMatrix<float, Eigen::ColMajor>::InnerIterator;
 
     InnerIterator it_area(A.mat, col);
     InnerIterator it_ineq(A.mat, col);
@@ -116,17 +116,17 @@ void EqualAreaParametricMeshNewtonIterator::jacobian(EqualAreaParametricMeshSpar
 
 void EqualAreaParametricMeshSparseMatrix::mult(double *vec, double *result) {
   using Map = Eigen::Map<Eigen::VectorXd>;
-  Map(result, mat.rows()) = mat * Map(vec, mat.cols());
+  Map(result, mat.rows()) = (mat * Map(vec, mat.cols()).cast<float>()).cast<double>();
 }
 
 void EqualAreaParametricMeshSparseMatrix::multT(double *vec, double *result) {
   using Map = Eigen::Map<Eigen::VectorXd>;
-  Map(result, mat.cols()) = mat.transpose() * Map(vec, mat.rows());
+  Map(result, mat.cols()) = (mat.transpose() * Map(vec, mat.rows()).cast<float>()).cast<double>();
 }
 
-void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, double *b, double *x) {
+void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, float *b, float *x) {
   using namespace Eigen;
-  using Map = Eigen::Map<Eigen::VectorXd>;
+  using Map = Eigen::Map<Eigen::VectorXf>;
 
   // After comprehensive benchmarking of different storage orders, storage durations, and solver
   // implementations, I conclude the below settings are best.
@@ -151,10 +151,7 @@ void EqualAreaParametricMeshSparseMatrix::solve(int /* structure_change */, doub
   cg.setTolerance(1e-7);
   cg.compute(mat.cast<float>());
 
-  static VectorXf bf;
-  bf = Map(b, mat.cols()).cast<float>();
-
-  Map(x, mat.rows()) = cg.solve(bf).cast<double>();
+  Map(x, mat.rows()) = cg.solve(Map(b, mat.cols()));
 
   std::cout << "si" << cg.iterations();
 }
